@@ -20,22 +20,24 @@ const RIFF = ['E2', 'E2', 'G3', 'E2', 'A2', 'E2', 'B3', 'G3']
 export function createSamplerSource(): Source {
   let loaded = false
   let wantPlay = false
+  let disposed = false
+
+  // 현재 이 음원이 전역 트랜스포트의 유일한 사용자라 BPM을 직접 설정한다.
+  // (다른 시퀀서와 공존하게 되면 소유권을 재고할 것)
+  const transport = Tone.getTransport()
+  transport.bpm.value = 100
 
   const sampler = new Tone.Sampler({
     urls: URLS,
     baseUrl: '/audio/guitar/',
     release: 1,
     onload: () => {
+      if (disposed) return // 로드 전에 dispose됐으면 좀비 start 방지
       loaded = true
       // 샘플 로드 전에 Play를 눌렀다면, 로드 완료 시 곧바로 시작(무음 방지).
       if (wantPlay) transport.start()
     },
   })
-
-  // 현재 이 음원이 전역 트랜스포트의 유일한 사용자라 BPM을 직접 설정한다.
-  // (다른 시퀀서와 공존하게 되면 소유권을 재고할 것)
-  const transport = Tone.getTransport()
-  transport.bpm.value = 100
 
   const seq = new Tone.Sequence(
     (time, note) => {
@@ -57,7 +59,9 @@ export function createSamplerSource(): Source {
       transport.stop()
     },
     dispose() {
-      // play()가 시작한 전역 트랜스포트를 되돌린다(자기 부수효과 정리).
+      // play()가 시작한 전역 트랜스포트를 되돌리고, 지연 start도 막는다.
+      disposed = true
+      wantPlay = false
       transport.stop()
       seq.dispose()
       sampler.dispose()
