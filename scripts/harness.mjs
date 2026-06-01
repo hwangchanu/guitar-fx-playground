@@ -13,7 +13,7 @@
 import { spawn, spawnSync } from 'node:child_process'
 
 const WIN = process.platform === 'win32'
-const ANSI = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g')
+const ANSI = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*[A-Za-z]', 'g')
 const stripAnsi = (s) => s.replace(ANSI, '')
 
 const argIdx = process.argv.indexOf('--stage')
@@ -24,11 +24,14 @@ function run(cmd, args) {
   return new Promise((resolve) => {
     const child = spawn(cmd, args, { shell: WIN }) // Windows에서 npx 해석
     let output = ''
-    const tee = (src, dst) =>
-      src?.on('data', (chunk) => {
+    const tee = (src, dst) => {
+      if (!src) return
+      src.setEncoding('utf8') // 멀티바이트(한글) 경계 깨짐 방지 — 캡처본도 정확
+      src.on('data', (chunk) => {
         dst.write(chunk) // 실시간 표시
         output += chunk // 캡처
       })
+    }
     tee(child.stdout, process.stdout)
     tee(child.stderr, process.stderr)
     child.on('error', (err) => {
@@ -73,7 +76,11 @@ const CHECKS = [
     stages: ['pre-push', 'ci'], run: () => run('npx', ['playwright', 'test']) },
 ]
 
-const selected = CHECKS.filter((c) => c.stages.includes(stage))
+// blocking을 먼저, advisory(AI 리뷰)를 나중에 — AI가 모든 blocking 실패 로그를 받도록
+// 배열 위치가 아니라 정렬로 순서를 보장한다(stable sort라 그룹 내 순서는 유지).
+const selected = CHECKS.filter((c) => c.stages.includes(stage)).sort(
+  (a, b) => Number(b.blocking) - Number(a.blocking),
+)
 if (selected.length === 0) {
   console.log(`알 수 없는 단계 "${stage}". (pre-commit | pre-push | ci)`)
   process.exit(1)
