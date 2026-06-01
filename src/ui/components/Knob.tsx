@@ -20,21 +20,22 @@ export function Knob({ label, value, onChange, step = 1, disabled = false }: Kno
     Math.min(100, Math.max(0, Math.round(v / step) * step))
 
   // 포인터 캡처를 쓰므로 move/up 이벤트가 요소로 계속 들어온다(전역 리스너 불필요).
-  const onPointerDown = (e: ReactPointerEvent) => {
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (disabled) return
     e.preventDefault()
     e.stopPropagation() // 카드 선택/드래그로 전파 방지
     e.currentTarget.setPointerCapture(e.pointerId)
+    e.currentTarget.focus() // 클릭 후에도 화살표키가 먹도록 포커스
     startY.current = e.clientY
     startValue.current = value
     setDragging(true)
   }
-  const onPointerMove = (e: ReactPointerEvent) => {
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!dragging) return
     const delta = startY.current - e.clientY // 위로 끌면 증가
     onChange(clampSnap(startValue.current + delta))
   }
-  const onPointerUp = (e: ReactPointerEvent) => {
+  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!dragging) return
     e.currentTarget.releasePointerCapture(e.pointerId)
     setDragging(false)
@@ -49,7 +50,7 @@ export function Knob({ label, value, onChange, step = 1, disabled = false }: Kno
     else if (e.key === 'End') next = 100
     if (next === null) return
     e.preventDefault()
-    onChange(Math.min(100, Math.max(0, next)))
+    onChange(clampSnap(next)) // 드래그와 동일하게 step 그리드로 스냅
   }
 
   const rotation = (value / 100) * 270 - 135 // -135° ~ +135°
