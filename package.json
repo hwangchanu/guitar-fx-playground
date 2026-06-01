@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "review": "git diff HEAD | claude -p \"Review this diff strictly following the '코드 리뷰 기준' section of CLAUDE.md (its checklist, output format, and behavior rules).\""
+    "review": "node scripts/ai-review.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -72,6 +72,7 @@
 - `src/` — React 앱. (오디오 엔진 레이어와 UI 컴포넌트를 하위 폴더로 분리 예정)
 - `public/` — 정적 자산 (DI 루프/기타 샘플 등은 여기 또는 CDN)
 - `hooks/` — git 훅 (advisory pre-commit 코드 리뷰)
+- `scripts/` — 개발용 스크립트. `ai-review.mjs`(코드 리뷰 diff 수집 + 실행, 단일 출처)
 - 스타일: Tailwind CSS v4 (`@tailwindcss/vite` 플러그인, `src/index.css`에서
   `@import "tailwindcss";`)
 - 주요 의존성: `tone`(오디오), `@dnd-kit/*`(페달 드래그·순서변경)

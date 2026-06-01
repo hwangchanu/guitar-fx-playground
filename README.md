@@ -1,73 +1,24 @@
-# React + TypeScript + Vite
+# Guitar FX Playground
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+기타 이펙터 초보자를 위한 웹 체험 사이트. 여러 페달을 드래그로 엮고 순서를
+바꿔가며 소리 차이를 직접 듣고, 옆 패널 설명으로 "왜 그런지"를 배운다.
 
-Currently, two official plugins are available:
+프로젝트 방향·아키텍처·원칙은 [CLAUDE.md](CLAUDE.md) 참조.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 스택
 
-## React Compiler
+Vite + React + TypeScript · Tone.js(오디오) · dnd-kit(드래그) · Tailwind CSS v4
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 개발
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev      # 개발 서버 (HMR)
+npm run build    # 타입체크 + 프로덕션 빌드
+npm run preview  # 빌드 결과 미리보기
+npm run lint     # ESLint
+npm run review   # 현재 변경에 대한 AI 코드 리뷰
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+커밋 시 `hooks/pre-commit`이 스테이징된 변경을 AI로 리뷰해 출력한다(커밋은 막지
+않는 권고용). 끄려면 `git config --unset core.hooksPath`.
