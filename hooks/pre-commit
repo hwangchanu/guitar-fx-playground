@@ -1,0 +1,15 @@
+#!/bin/sh
+# Advisory AI code review of staged changes.
+# NEVER blocks the commit — it only prints findings, then exits 0.
+# Disable:  git config --unset core.hooksPath   (or delete this file)
+
+# Skip silently if the Claude CLI isn't available.
+command -v claude >/dev/null 2>&1 || exit 0
+
+staged=$(git diff --cached)
+[ -z "$staged" ] && exit 0
+
+echo "🔍 Advisory AI code review (commit will proceed regardless)..."
+printf '%s\n' "$staged" | claude -p "Review this staged git diff strictly following the '코드 리뷰 기준' section of CLAUDE.md (its checklist, output format, and behavior rules)." || true
+
+exit 0

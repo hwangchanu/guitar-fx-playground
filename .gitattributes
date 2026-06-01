@@ -1,0 +1,2 @@
+# Shell hooks must stay LF so the shebang works under git's bash on Windows.
+hooks/** text eol=lf
