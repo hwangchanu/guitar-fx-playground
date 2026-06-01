@@ -84,9 +84,6 @@
 - 스타일: Tailwind CSS v4 (`@tailwindcss/vite` 플러그인, `src/index.css`에서
   `@import "tailwindcss";`)
 - 주요 의존성: `tone`(오디오), `@dnd-kit/*`(페달 드래그·순서변경)
-- 스타일: Tailwind CSS v4 (`@tailwindcss/vite` 플러그인, `src/index.css`에서
-  `@import "tailwindcss";`)
-- 주요 의존성: `tone`(오디오), `@dnd-kit/*`(페달 드래그·순서변경)
 
 ## 테스트 / 체크 하네스
 

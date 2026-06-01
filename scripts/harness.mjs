@@ -13,11 +13,15 @@ import { spawnSync } from 'node:child_process'
 const argIdx = process.argv.indexOf('--stage')
 const stage = argIdx >= 0 ? process.argv[argIdx + 1] : 'ci'
 
-const run = (cmd, args) =>
-  spawnSync(cmd, args, {
+const run = (cmd, args) => {
+  const res = spawnSync(cmd, args, {
     stdio: 'inherit',
     shell: process.platform === 'win32', // Windows에서 npx/node 해석
-  }).status ?? 1
+  })
+  // spawn 자체 실패(명령 미존재 등, status === null)는 조용히 넘기지 않고 표면화.
+  if (res.error) console.error(`실행 실패: ${cmd} — ${res.error.message}`)
+  return res.status ?? 1
+}
 
 // blocking: 실패 시 커밋/푸시 차단. advisory(false): 출력만 하고 통과.
 // stages: 이 체크가 도는 단계 집합.
