@@ -75,21 +75,22 @@ export class PedalboardEngine {
       this.prevParams.set(entry.id, { ...entry.params })
     }
 
-    // 체인 구조가 바뀐 경우에만 재배선
-    const chainKey = computeChain(state).join('>')
+    // 체인 구조가 바뀐 경우에만 재배선 (computeChain은 한 번만 계산해 재사용)
+    const chain = computeChain(state)
+    const chainKey = chain.join('>')
     if (chainKey !== this.prevChainKey) {
-      this.rewire(state)
+      this.rewire(chain)
       this.prevChainKey = chainKey
     }
   }
 
-  /** source → (바이패스 아닌 페달 순서대로) → destination 으로 재연결. */
-  private rewire(state: PedalboardState): void {
+  /** source → (chain 순서의 페달들) → destination 으로 재연결. */
+  private rewire(chain: string[]): void {
     this.source.output.disconnect()
     for (const { pedal } of this.instances.values()) pedal.output.disconnect()
 
     let prev: Tone.ToneAudioNode = this.source.output
-    for (const id of computeChain(state)) {
+    for (const id of chain) {
       const managed = this.instances.get(id)
       if (!managed) continue
       prev.connect(managed.pedal.input)
@@ -102,6 +103,8 @@ export class PedalboardEngine {
     this.source.output.disconnect()
     for (const { pedal } of this.instances.values()) pedal.dispose()
     this.instances.clear()
+    this.prevParams.clear()
+    this.prevChainKey = null
     this.source.dispose()
   }
 }
