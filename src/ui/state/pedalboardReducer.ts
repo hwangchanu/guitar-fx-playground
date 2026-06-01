@@ -4,7 +4,7 @@ import type { PedalboardState, PedalEntry } from '../../audio/types'
 import { PEDAL_SPECS } from '../../audio/pedals/specs'
 
 export type PedalboardAction =
-  | { type: 'add'; kind: string }
+  | { type: 'add'; kind: string; id?: string }
   | { type: 'remove'; id: string }
   | { type: 'reorder'; from: number; to: number }
   | { type: 'toggleBypass'; id: string }
@@ -12,13 +12,13 @@ export type PedalboardAction =
 
 export const initialPedalboard: PedalboardState = { pedals: [] }
 
-/** kind의 기본 파라미터로 새 페달 항목을 만든다. */
-export function createPedal(kind: string): PedalEntry {
+/** kind의 기본 파라미터로 새 페달 항목을 만든다. id를 주면 그대로 사용(UI가 선택용). */
+export function createPedal(kind: string, id?: string): PedalEntry {
   const spec = PEDAL_SPECS[kind]
   if (!spec) throw new Error(`Unknown pedal kind: ${kind}`)
   const params: Record<string, number> = {}
   for (const p of spec.params) params[p.id] = p.default
-  return { id: crypto.randomUUID(), kind, bypassed: false, params }
+  return { id: id ?? crypto.randomUUID(), kind, bypassed: false, params }
 }
 
 export function pedalboardReducer(
@@ -27,7 +27,7 @@ export function pedalboardReducer(
 ): PedalboardState {
   switch (action.type) {
     case 'add':
-      return { pedals: [...state.pedals, createPedal(action.kind)] }
+      return { pedals: [...state.pedals, createPedal(action.kind, action.id)] }
     case 'remove':
       return { pedals: state.pedals.filter((p) => p.id !== action.id) }
     case 'reorder': {

@@ -39,7 +39,11 @@ export function useEngine() {
     playing,
     play,
     stop,
-    addPedal: (kind: string) => dispatch({ type: 'add', kind }),
+    addPedal: (kind: string): string => {
+      const id = crypto.randomUUID()
+      dispatch({ type: 'add', kind, id })
+      return id
+    },
     removePedal: (id: string) => dispatch({ type: 'remove', id }),
     reorder: (from: number, to: number) => dispatch({ type: 'reorder', from, to }),
     toggleBypass: (id: string) => dispatch({ type: 'toggleBypass', id }),
