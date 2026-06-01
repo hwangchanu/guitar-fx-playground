@@ -22,3 +22,7 @@ npm run review   # 현재 변경에 대한 AI 코드 리뷰
 
 커밋 시 `hooks/pre-commit`이 스테이징된 변경을 AI로 리뷰해 출력한다(커밋은 막지
 않는 권고용). 끄려면 `git config --unset core.hooksPath`.
+
+## 크레딧
+
+- 기타 샘플(`public/audio/guitar/`): [FreePats — Clean Electric Guitar](https://freepats.zenvoid.org/ElectricGuitar/clean-electric-guitar.html), CC0 1.0 (퍼블릭 도메인). 펜더 일렉기타 다이렉트(DI) 녹음.

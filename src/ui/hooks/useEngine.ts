@@ -3,7 +3,7 @@
 // 출처. 상태가 바뀌면 effect에서 engine.reconcile을 호출한다.
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { PedalboardEngine } from '../../audio/PedalboardEngine'
-import { createTestToneSource } from '../../audio/sources/testToneSource'
+import { createSamplerSource } from '../../audio/sources/samplerSource'
 import { pedalboardReducer, initialPedalboard } from '../state/pedalboardReducer'
 
 export function useEngine() {
@@ -12,8 +12,8 @@ export function useEngine() {
   const [playing, setPlaying] = useState(false)
 
   useEffect(() => {
-    // TODO: DI 루프 확보 후 createLoopSource('/audio/preset-clean.wav')로 교체.
-    const engine = new PedalboardEngine(createTestToneSource())
+    // 샘플드 클린 일렉기타(FreePats CC0) 리프. 음원은 교체 가능한 모듈이라 한 줄만 바꾸면 됨.
+    const engine = new PedalboardEngine(createSamplerSource())
     engineRef.current = engine
     return () => {
       engine.dispose()

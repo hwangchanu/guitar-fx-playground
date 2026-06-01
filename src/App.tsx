@@ -16,7 +16,7 @@ function App() {
         <div>
           <h1 className="text-2xl font-semibold">Guitar FX Playground</h1>
           <p className="text-sm text-zinc-500">
-            페달을 엮고 순서를 바꿔가며 소리를 비교해보세요. (개발용 테스트 톤)
+            페달을 엮고 순서를 바꿔가며 소리를 비교해보세요. (클린 일렉기타 리프 · FreePats CC0)
           </p>
         </div>
         <TransportControls playing={engine.playing} onPlay={engine.play} onStop={engine.stop} />
