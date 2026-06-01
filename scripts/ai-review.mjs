@@ -36,13 +36,16 @@ if (staged) {
     .split('\n')
     .filter(Boolean)
   for (const f of untracked) {
-    let body
+    let buf
     try {
-      body = readFileSync(f, 'utf8')
+      buf = readFileSync(f)
     } catch {
-      continue // 바이너리 등 텍스트로 못 읽는 파일은 건너뜀
+      continue
     }
-    diff += `\n\n===== NEW FILE: ${f} =====\n${body}`
+    // 바이너리(오디오 샘플·이미지 등)는 건너뛴다 — utf8 디코딩은 throw하지 않고
+    // 깨진 문자로 통째로 덤프되므로 NUL 바이트 유무로 명시적으로 감지한다.
+    if (buf.includes(0)) continue
+    diff += `\n\n===== NEW FILE: ${f} =====\n${buf.toString('utf8')}`
   }
 }
 
@@ -61,4 +64,11 @@ const res = spawnSync('claude', ['-p', prompt], {
 })
 
 // 권고용(staged)에서는 리뷰 결과와 무관하게 항상 성공으로 빠져 커밋을 막지 않는다.
-process.exit(staged ? 0 : res.status ?? 0)
+if (staged) process.exit(0)
+
+// 수동 모드: spawn 자체가 실패하면(status === null) 조용히 "성공"하지 않고 표면화.
+if (res.error) {
+  console.error(`리뷰 실행 실패: ${res.error.message}`)
+  process.exit(1)
+}
+process.exit(res.status ?? 1)
