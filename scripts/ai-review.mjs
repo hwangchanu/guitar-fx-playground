@@ -6,10 +6,24 @@
 // 사용법:
 //   node scripts/ai-review.mjs            # 수동: 커밋 안 된 모든 변경 + 신규 파일
 //   node scripts/ai-review.mjs --staged   # pre-commit: 스테이징된 변경만 (권고용)
+//   node scripts/ai-review.mjs --staged --with-failures
+//       # 하네스가 blocking 체크 실패 로그를 stdin으로 넘겨주면, 리뷰와 함께
+//       # 그 실패의 원인·위치·수정안을 해설한다.
 import { execSync, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
 const staged = process.argv.includes('--staged')
+const withFailures = process.argv.includes('--with-failures')
+
+// 실패 로그는 --with-failures일 때만 stdin에서 읽는다(없을 때 읽으면 hang되므로).
+let failureLog = ''
+if (withFailures) {
+  try {
+    failureLog = readFileSync(0, 'utf8') // fd 0 = stdin
+  } catch {
+    failureLog = ''
+  }
+}
 
 const sh = (cmd) => {
   try {
@@ -49,17 +63,28 @@ if (staged) {
   }
 }
 
-if (!diff.trim()) {
+if (!diff.trim() && !failureLog.trim()) {
   console.log('리뷰할 변경 사항이 없습니다.')
   process.exit(0)
 }
 
-const prompt =
+let prompt =
   "Review this diff strictly following the '코드 리뷰 기준' section of " +
   'CLAUDE.md (its checklist, output format, and behavior rules).'
 
+let input = ''
+if (failureLog.trim()) {
+  // blocking 체크가 실패한 상태 — 로그를 함께 주고 원인 해설을 요청한다.
+  input += `===== FAILED CHECK LOGS =====\n${failureLog}\n\n`
+  prompt +=
+    ' Additionally, one or more deterministic checks FAILED — their logs are' +
+    ' included above the diff. For each failure, diagnose the root cause,' +
+    ' point to the exact file:line, and suggest a concrete fix (in Korean).'
+}
+input += `===== DIFF =====\n${diff || '(스테이징된 변경 없음)'}`
+
 const res = spawnSync('claude', ['-p', prompt], {
-  input: diff,
+  input,
   stdio: ['pipe', 'inherit', 'inherit'],
 })
 

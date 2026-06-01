@@ -94,6 +94,10 @@
 - 단계(stage)별 실행: `node scripts/harness.mjs --stage <pre-commit|pre-push|ci>`
 - 게이팅(하이브리드): `blocking: true` 체크가 하나라도 실패하면 비정상 종료(커밋/푸시
   차단). `blocking: false`(예: AI 리뷰)는 출력만 하고 종료코드에 반영하지 않음.
+- 실패 해설: 하네스는 각 체크 출력을 화면에 보여주며 동시에 캡처(tee)한다. blocking
+  체크가 실패하면 그 로그를 AI 리뷰 단계(stage 내 마지막)에 stdin으로 넘겨, AI가
+  코드리뷰와 함께 **실패 원인·`파일:줄`·수정안**을 해설한다. 초록불이면 넘길 로그가
+  없어 순수 코드리뷰만 한다. (해설은 여전히 advisory — 차단은 결정적 체크가 한다)
 
 | 체크 | blocking | pre-commit | pre-push / ci |
 | ------ | :--: | :--: | :--: |
