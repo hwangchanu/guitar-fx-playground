@@ -18,12 +18,22 @@ const URLS: Record<string, string> = {
 const RIFF = ['E2', 'E2', 'G3', 'E2', 'A2', 'E2', 'B3', 'G3']
 
 export function createSamplerSource(): Source {
+  let loaded = false
+  let wantPlay = false
+
   const sampler = new Tone.Sampler({
     urls: URLS,
     baseUrl: '/audio/guitar/',
     release: 1,
+    onload: () => {
+      loaded = true
+      // 샘플 로드 전에 Play를 눌렀다면, 로드 완료 시 곧바로 시작(무음 방지).
+      if (wantPlay) transport.start()
+    },
   })
 
+  // 현재 이 음원이 전역 트랜스포트의 유일한 사용자라 BPM을 직접 설정한다.
+  // (다른 시퀀서와 공존하게 되면 소유권을 재고할 것)
   const transport = Tone.getTransport()
   transport.bpm.value = 100
 
@@ -39,12 +49,16 @@ export function createSamplerSource(): Source {
   return {
     output: sampler,
     play() {
-      transport.start()
+      if (loaded) transport.start()
+      else wantPlay = true // 로드되면 onload에서 시작
     },
     stop() {
+      wantPlay = false
       transport.stop()
     },
     dispose() {
+      // play()가 시작한 전역 트랜스포트를 되돌린다(자기 부수효과 정리).
+      transport.stop()
       seq.dispose()
       sampler.dispose()
     },
