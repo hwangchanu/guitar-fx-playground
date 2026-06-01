@@ -111,6 +111,9 @@
 빠른 체크는 커밋마다(`hooks/pre-commit`), 느린 build·e2e는 푸시 때(`hooks/pre-push`).
 끄기: `git config --unset core.hooksPath`.
 
+GitHub에서도 `.github/workflows/ci.yml`이 push/PR마다 `--stage ci`(typecheck·lint·
+unit·build·e2e)를 깨끗한 환경에서 실행한다 — 로컬 훅(우회 가능)과 달리 우회 불가 게이트.
+
 **테스트 대상 분리**: vitest는 순수 TS만(엔진의 `computeChain`/registry/reducer 등,
 AudioContext 비의존). Tone.js 실제 동작은 Playwright 스모크에서 `window.__engine`
 그래프 상태로 검증한다(실제 소리는 단언하지 않음).

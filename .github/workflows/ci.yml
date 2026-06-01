@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # 하네스의 ci 단계 = typecheck + lint + unit + build + e2e (로컬과 단일 출처).
+      # AI 리뷰는 pre-commit 전용이라 여기 포함 안 됨(CI엔 claude CLI/인증 없음).
+      # 실제 브라우저 e2e를 붙이면 아래 줄을 켜 브라우저를 설치한다:
+      # - run: npx playwright install --with-deps chromium
+      - run: node scripts/harness.mjs --stage ci
