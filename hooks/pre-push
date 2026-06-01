@@ -1,0 +1,8 @@
+#!/bin/sh
+# Pre-push 체크 하네스: pre-commit의 빠른 체크에 더해 build + e2e(느린 체크)까지.
+# blocking 체크 실패 시 push 중단.
+# 끄기:  git config --unset core.hooksPath   (또는 이 파일 삭제)
+
+command -v node >/dev/null 2>&1 || exit 0
+
+node scripts/harness.mjs --stage pre-push

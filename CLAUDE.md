@@ -65,17 +65,54 @@
 - `npm run build` — 타입체크 + 프로덕션 빌드 (`tsc -b && vite build`)
 - `npm run preview` — 빌드 결과 로컬 미리보기
 - `npm run lint` — ESLint
+- `npm run test` — 단위 테스트 (vitest, 1회 실행) / `npm run test:watch` — 워치
+- `npm run e2e` — Playwright 스모크 테스트
+- `npm run check` — 체크 하네스 전체 실행 (CI 단계)
 - `npm run review` — 현재 변경(diff)을 코드 리뷰 기준으로 헤드리스 리뷰
 
 ## 폴더 구조 (시작 시점)
 
 - `src/` — React 앱. (오디오 엔진 레이어와 UI 컴포넌트를 하위 폴더로 분리 예정)
+  - 단위 테스트는 `src/**/*.test.ts`로 co-locate
 - `public/` — 정적 자산 (DI 루프/기타 샘플 등은 여기 또는 CDN)
-- `hooks/` — git 훅 (advisory pre-commit 코드 리뷰)
-- `scripts/` — 개발용 스크립트. `ai-review.mjs`(코드 리뷰 diff 수집 + 실행, 단일 출처)
+- `e2e/` — Playwright 스모크 테스트 (`*.spec.ts`)
+- `hooks/` — git 훅. `pre-commit`·`pre-push`가 체크 하네스를 호출
+- `scripts/` — 개발용 스크립트
+  - `harness.mjs` — 체크 하네스(레지스트리 + 러너, 단일 출처)
+  - `ai-review.mjs` — 코드 리뷰 diff 수집 + 실행 (하네스의 advisory 체크)
+- `vitest.config.ts` / `playwright.config.ts` — 테스트 설정
 - 스타일: Tailwind CSS v4 (`@tailwindcss/vite` 플러그인, `src/index.css`에서
   `@import "tailwindcss";`)
 - 주요 의존성: `tone`(오디오), `@dnd-kit/*`(페달 드래그·순서변경)
+- 스타일: Tailwind CSS v4 (`@tailwindcss/vite` 플러그인, `src/index.css`에서
+  `@import "tailwindcss";`)
+- 주요 의존성: `tone`(오디오), `@dnd-kit/*`(페달 드래그·순서변경)
+
+## 테스트 / 체크 하네스
+
+품질 체크는 `scripts/harness.mjs`의 **선언적 레지스트리**(`CHECKS` 배열)에 모여 있다.
+각 체크 = `{ id, label, run, blocking, stages }`. **체크 추가 = 항목 한 줄**(페달
+레지스트리와 동일 패턴).
+
+- 단계(stage)별 실행: `node scripts/harness.mjs --stage <pre-commit|pre-push|ci>`
+- 게이팅(하이브리드): `blocking: true` 체크가 하나라도 실패하면 비정상 종료(커밋/푸시
+  차단). `blocking: false`(예: AI 리뷰)는 출력만 하고 종료코드에 반영하지 않음.
+
+| 체크 | blocking | pre-commit | pre-push / ci |
+| ------ | :--: | :--: | :--: |
+| typecheck (`tsc -b`) | ✅ | ✅ | ✅ |
+| lint (`eslint`) | ✅ | ✅ | ✅ |
+| unit (`vitest`) | ✅ | ✅ | ✅ |
+| ai-review | ❌(권고) | ✅ | — |
+| build (`vite build`) | ✅ | — | ✅ |
+| e2e (`playwright`) | ✅ | — | ✅ |
+
+빠른 체크는 커밋마다(`hooks/pre-commit`), 느린 build·e2e는 푸시 때(`hooks/pre-push`).
+끄기: `git config --unset core.hooksPath`.
+
+**테스트 대상 분리**: vitest는 순수 TS만(엔진의 `computeChain`/registry/reducer 등,
+AudioContext 비의존). Tone.js 실제 동작은 Playwright 스모크에서 `window.__engine`
+그래프 상태로 검증한다(실제 소리는 단언하지 않음).
 
 ## 코드 리뷰 기준
 
@@ -106,8 +143,8 @@
 ### 리뷰 실행 방법
 
 - 수동: `npm run review` — 현재 변경(diff)을 위 기준으로 헤드리스 리뷰.
-- 자동(advisory): 커밋 시 `hooks/pre-commit`이 스테이징된 변경을 리뷰해 출력한다.
-  **커밋을 막지 않는 권고용**이다. 끄려면 `git config --unset core.hooksPath`.
+- 자동(advisory): 커밋 시 체크 하네스가 AI 리뷰를 advisory 체크로 실행한다(출력만,
+  커밋 차단 안 함). 하네스 전반은 "테스트 / 체크 하네스" 섹션 참조.
 
 ## 용어
 

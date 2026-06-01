@@ -1,13 +1,9 @@
 #!/bin/sh
-# Advisory AI code review of staged changes.
-# NEVER blocks the commit — it only prints findings, then exits 0.
-# Disable:  git config --unset core.hooksPath   (or delete this file)
-#
-# Review logic lives in scripts/ai-review.mjs (shared with `npm run review`).
+# Pre-commit 체크 하네스: typecheck + lint + unit (blocking) + AI 리뷰 (advisory).
+# blocking 체크 실패 시 커밋 중단. AI 리뷰는 권고일 뿐 커밋을 막지 않는다.
+# 빠른 체크만 — build/e2e 같은 느린 체크는 pre-push에서 돈다.
+# 끄기:  git config --unset core.hooksPath   (또는 이 파일 삭제)
 
 command -v node >/dev/null 2>&1 || exit 0
 
-echo "🔍 Advisory AI code review (commit will proceed regardless)..."
-node scripts/ai-review.mjs --staged || true
-
-exit 0
+node scripts/harness.mjs --stage pre-commit
