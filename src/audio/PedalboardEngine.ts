@@ -17,6 +17,9 @@ export class PedalboardEngine {
   private readonly source: Source
   private readonly instances = new Map<string, ManagedPedal>()
   private started = false
+  // 직전 reconcile 스냅샷 — 바뀐 것만 처리하기 위한 diff 기준.
+  private prevChainKey: string | null = null
+  private readonly prevParams = new Map<string, Record<string, number>>()
 
   constructor(source: Source) {
     this.source = source
@@ -35,7 +38,12 @@ export class PedalboardEngine {
     this.source.stop()
   }
 
-  /** 상태에 맞춰 노드를 생성/제거하고 체인을 재연결한다. */
+  /**
+   * 상태에 맞춰 노드를 생성/제거하고 체인을 재연결한다.
+   * - 파라미터는 직전 값과 다른 것만 적용(불필요한 setParam/IR 재생성 방지).
+   * - 재배선(rewire)은 체인 구조(추가/삭제/순서/바이패스)가 바뀔 때만 — 노브만
+   *   움직일 땐 그래프를 건드리지 않아 재생 중 끊김이 없다.
+   */
   reconcile(state: PedalboardState): void {
     const wanted = new Set(state.pedals.map((p) => p.id))
 
@@ -44,24 +52,35 @@ export class PedalboardEngine {
       if (!wanted.has(id)) {
         managed.pedal.dispose()
         this.instances.delete(id)
+        this.prevParams.delete(id)
       }
     }
 
-    // 신규 페달 생성 + 모든 파라미터 적용
+    // 신규 페달 생성 + 바뀐 파라미터만 적용
     for (const entry of state.pedals) {
       let managed = this.instances.get(entry.id)
+      const isNew = !managed
       if (!managed) {
         const factory = PEDAL_FACTORIES[entry.kind]
         if (!factory) continue
         managed = { kind: entry.kind, pedal: factory() }
         this.instances.set(entry.id, managed)
       }
+      const prev = this.prevParams.get(entry.id)
       for (const [paramId, value] of Object.entries(entry.params)) {
-        managed.pedal.setParam(paramId, value)
+        if (isNew || !prev || prev[paramId] !== value) {
+          managed.pedal.setParam(paramId, value)
+        }
       }
+      this.prevParams.set(entry.id, { ...entry.params })
     }
 
-    this.rewire(state)
+    // 체인 구조가 바뀐 경우에만 재배선
+    const chainKey = computeChain(state).join('>')
+    if (chainKey !== this.prevChainKey) {
+      this.rewire(state)
+      this.prevChainKey = chainKey
+    }
   }
 
   /** source → (바이패스 아닌 페달 순서대로) → destination 으로 재연결. */
