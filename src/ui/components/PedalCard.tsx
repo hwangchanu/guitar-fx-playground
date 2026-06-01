@@ -3,13 +3,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, X } from 'lucide-react'
 import type { PedalEntry } from '../../audio/types'
 import { PEDAL_SPECS } from '../../audio/pedals/specs'
+import { pedalAccent } from '../pedalTheme'
 import { Knob } from './Knob'
-
-const COLOR: Record<string, string> = {
-  overdrive: 'from-orange-900/40 to-orange-950/40 border-orange-800/50',
-  delay: 'from-blue-900/40 to-blue-950/40 border-blue-800/50',
-  reverb: 'from-purple-900/40 to-purple-950/40 border-purple-800/50',
-}
 
 interface Props {
   entry: PedalEntry
@@ -34,7 +29,7 @@ export function PedalCard({ entry, isSelected, onSelect, onRemove, onToggleBypas
       style={style}
       onClick={() => onSelect(entry.id)}
       className={`relative flex min-w-[200px] cursor-pointer flex-col items-center gap-4 rounded-xl border-2 bg-gradient-to-br p-6 shadow-2xl transition-all ${
-        COLOR[entry.kind] ?? 'from-zinc-800 to-zinc-900 border-zinc-700'
+        pedalAccent(entry.kind).card
       } ${isSelected ? 'scale-105 ring-2 ring-amber-500' : ''} ${enabled ? '' : 'opacity-40'} ${
         isDragging ? 'opacity-50' : ''
       }`}
@@ -71,15 +66,22 @@ export function PedalCard({ entry, isSelected, onSelect, onRemove, onToggleBypas
       {/* 노브 (실제 범위 ↔ 0–100% 매핑) */}
       <div className="flex items-start justify-center gap-6">
         {spec?.params.map((p) => {
+          const range = p.max - p.min
           const real = entry.params[p.id] ?? p.default
-          const pct = ((real - p.min) / (p.max - p.min)) * 100
+          const pct = ((real - p.min) / range) * 100
           return (
             <Knob
               key={p.id}
               label={p.label}
               value={pct}
+              step={(p.step / range) * 100}
               disabled={!enabled}
-              onChange={(v) => onSetParam(entry.id, p.id, p.min + (v / 100) * (p.max - p.min))}
+              onChange={(v) => {
+                const mapped = p.min + (v / 100) * range
+                // spec의 step 단위로 스냅 (노브의 % 양자화로 잃은 정밀도 복원)
+                const snapped = Math.min(p.max, Math.max(p.min, Math.round(mapped / p.step) * p.step))
+                onSetParam(entry.id, p.id, snapped)
+              }}
             />
           )
         })}

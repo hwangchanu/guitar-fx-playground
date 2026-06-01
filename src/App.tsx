@@ -5,12 +5,7 @@ import { PEDAL_SPECS, PEDAL_KINDS } from './audio/pedals/specs'
 import { TransportControls } from './ui/components/TransportControls'
 import { Pedalboard } from './ui/components/Pedalboard'
 import { ExplanationPanel } from './ui/components/ExplanationPanel'
-
-const CHIP_COLOR: Record<string, string> = {
-  overdrive: 'text-orange-400 border-orange-800 hover:bg-orange-950/50 hover:border-orange-500',
-  delay: 'text-blue-400 border-blue-800 hover:bg-blue-950/50 hover:border-blue-500',
-  reverb: 'text-purple-400 border-purple-800 hover:bg-purple-950/50 hover:border-purple-500',
-}
+import { pedalAccent } from './ui/pedalTheme'
 
 function App() {
   const engine = useEngine()
@@ -47,7 +42,7 @@ function App() {
                   type="button"
                   onClick={() => setSelectedId(engine.addPedal(kind))}
                   className={`inline-flex cursor-pointer items-center gap-1 rounded-md border px-4 py-2 text-sm font-medium ${
-                    CHIP_COLOR[kind] ?? 'text-zinc-300 border-zinc-700 hover:bg-zinc-800'
+                    pedalAccent(kind).chip
                   }`}
                 >
                   <Plus className="h-4 w-4" />

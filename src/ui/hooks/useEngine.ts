@@ -39,6 +39,8 @@ export function useEngine() {
     playing,
     play,
     stop,
+    // 훅이 id의 정식 출처다(추가한 페달을 즉시 선택하려면 id가 동기적으로 필요).
+    // reducer.createPedal의 `?? crypto.randomUUID()`는 직접 호출용 폴백일 뿐.
     addPedal: (kind: string): string => {
       const id = crypto.randomUUID()
       dispatch({ type: 'add', kind, id })
