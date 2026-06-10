@@ -3,27 +3,42 @@
 // 출처. 상태가 바뀌면 effect에서 engine.reconcile을 호출한다.
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { PedalboardEngine } from '../../audio/PedalboardEngine'
-import { createSamplerSource } from '../../audio/sources/samplerSource'
+import { createSequencerSource } from '../../audio/sources/sequencerSource'
+import type { SequencerSource } from '../../audio/sources/sequencerSource'
 import { pedalboardReducer, initialPedalboard } from '../state/pedalboardReducer'
+import { sequencerReducer, initialSequencer } from '../state/sequencerReducer'
 
 export function useEngine() {
   const engineRef = useRef<PedalboardEngine | null>(null)
+  const sourceRef = useRef<SequencerSource | null>(null)
   const [state, dispatch] = useReducer(pedalboardReducer, initialPedalboard)
+  const [seq, seqDispatch] = useReducer(sequencerReducer, initialSequencer)
   const [playing, setPlaying] = useState(false)
 
   useEffect(() => {
-    // 샘플드 클린 일렉기타(FreePats CC0) 리프. 음원은 교체 가능한 모듈이라 한 줄만 바꾸면 됨.
-    const engine = new PedalboardEngine(createSamplerSource())
+    // 음원 = 스텝 시퀀서(기본 패턴 = 프리셋 리프). 음원은 교체 가능한 모듈.
+    const source = createSequencerSource(initialSequencer.cells, initialSequencer.bpm)
+    const engine = new PedalboardEngine(source)
+    sourceRef.current = source
     engineRef.current = engine
     return () => {
-      engine.dispose()
+      engine.dispose() // 엔진 dispose가 source.dispose()까지 수행
       engineRef.current = null
+      sourceRef.current = null
     }
   }, [])
 
   useEffect(() => {
     engineRef.current?.reconcile(state)
   }, [state])
+
+  // 시퀀스 편집을 음원에 푸시 (Tone 노드 재생성 없이 즉시 반영)
+  useEffect(() => {
+    sourceRef.current?.setPattern(seq.cells)
+  }, [seq.cells])
+  useEffect(() => {
+    sourceRef.current?.setBpm(seq.bpm)
+  }, [seq.bpm])
 
   const play = async () => {
     await engineRef.current?.play()
@@ -51,5 +66,14 @@ export function useEngine() {
     toggleBypass: (id: string) => dispatch({ type: 'toggleBypass', id }),
     setParam: (id: string, paramId: string, value: number) =>
       dispatch({ type: 'setParam', id, paramId, value }),
+    // 미디 찍기 (스텝 시퀀서)
+    sequencer: {
+      cells: seq.cells,
+      bpm: seq.bpm,
+      toggleCell: (row: number, step: number) => seqDispatch({ type: 'toggleCell', row, step }),
+      clear: () => seqDispatch({ type: 'clear' }),
+      loadDefault: () => seqDispatch({ type: 'loadDefault' }),
+      setBpm: (value: number) => seqDispatch({ type: 'setBpm', value }),
+    },
   }
 }

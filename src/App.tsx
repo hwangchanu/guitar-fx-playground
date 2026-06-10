@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Music } from 'lucide-react'
 import { useEngine } from './ui/hooks/useEngine'
 import { PEDAL_SPECS, PEDAL_KINDS } from './audio/pedals/specs'
 import { TransportControls } from './ui/components/TransportControls'
 import { Pedalboard } from './ui/components/Pedalboard'
 import { ExplanationPanel } from './ui/components/ExplanationPanel'
+import { StepSequencer } from './ui/components/StepSequencer'
 import { pedalAccent } from './ui/pedalTheme'
 
 function App() {
   const engine = useEngine()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [midiMode, setMidiMode] = useState(false)
   const selectedKind = engine.state.pedals.find((p) => p.id === selectedId)?.kind ?? null
 
   const handleRemove = (id: string) => {
@@ -27,7 +29,22 @@ function App() {
             </h1>
             <p className="text-xs text-zinc-500">클린 일렉기타 리프 · FreePats CC0</p>
           </div>
-          <TransportControls playing={engine.playing} onPlay={engine.play} onStop={engine.stop} />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMidiMode((m) => !m)}
+              aria-pressed={midiMode}
+              className={`inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium transition-colors ${
+                midiMode
+                  ? 'bg-amber-600 text-white hover:bg-amber-700'
+                  : 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
+              }`}
+            >
+              <Music className="h-4 w-4" />
+              찍기
+            </button>
+            <TransportControls playing={engine.playing} onPlay={engine.play} onStop={engine.stop} />
+          </div>
         </div>
       </header>
 
@@ -79,6 +96,17 @@ function App() {
                 </div>
               )}
             </div>
+
+            {midiMode && (
+              <StepSequencer
+                cells={engine.sequencer.cells}
+                bpm={engine.sequencer.bpm}
+                onToggle={engine.sequencer.toggleCell}
+                onClear={engine.sequencer.clear}
+                onLoadDefault={engine.sequencer.loadDefault}
+                onSetBpm={engine.sequencer.setBpm}
+              />
+            )}
           </div>
 
           {/* 설명 패널 */}
