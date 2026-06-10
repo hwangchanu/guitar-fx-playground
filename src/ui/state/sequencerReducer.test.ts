@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest'
+import { sequencerReducer, initialSequencer } from './sequencerReducer'
 import {
-  sequencerReducer,
-  initialSequencer,
+  SEQ_ROWS,
+  SEQ_STEPS,
+  activeNotesAt,
+  emptyCells,
   BPM_MIN,
   BPM_MAX,
-} from './sequencerReducer'
-import { SEQ_ROWS, SEQ_STEPS, activeNotesAt, emptyCells } from '../../audio/sequence/config'
+} from '../../audio/sequence/config'
 
 describe('sequencerReducer', () => {
   it('default pattern is the preset riff (non-empty, correct dimensions)', () => {

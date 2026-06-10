@@ -1,7 +1,6 @@
 import { Fragment } from 'react'
 import { Eraser, RotateCcw } from 'lucide-react'
-import { SEQ_ROWS, SEQ_STEPS } from '../../audio/sequence/config'
-import { BPM_MIN, BPM_MAX } from '../state/sequencerReducer'
+import { SEQ_ROWS, SEQ_STEPS, BPM_MIN, BPM_MAX } from '../../audio/sequence/config'
 
 interface Props {
   cells: boolean[][]

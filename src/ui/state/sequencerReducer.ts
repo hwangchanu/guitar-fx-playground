@@ -1,8 +1,5 @@
 // 스텝 시퀀서 상태 리듀서 (순수 — Tone 비의존, vitest 대상). pedalboardReducer 패턴 미러.
-import { defaultCells, emptyCells } from '../../audio/sequence/config'
-
-export const BPM_MIN = 50
-export const BPM_MAX = 200
+import { defaultCells, emptyCells, BPM_MIN, BPM_MAX } from '../../audio/sequence/config'
 
 export interface SequencerState {
   bpm: number

@@ -4,6 +4,10 @@
 /** 한 마디 = 16스텝(16분음표). 고정 길이라 Tone.Sequence 길이가 불변 → 노드 재생성 회피. */
 export const SEQ_STEPS = 16
 
+/** BPM 허용 범위 (리듀서 클램프 + UI 슬라이더 공유). */
+export const BPM_MIN = 50
+export const BPM_MAX = 200
+
 /**
  * 그리드 행(피치). 위→아래 = 높은음→낮은음. E 마이너 펜타토닉이라 아무렇게나 찍어도
  * 어울린다(초보자 타깃). 기본 리프 음(E2/A2/G3/B3) 포함. Sampler가 매핑 음 사이를 보간.
