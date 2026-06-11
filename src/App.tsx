@@ -6,6 +6,7 @@ import { TransportControls } from './ui/components/TransportControls'
 import { Pedalboard } from './ui/components/Pedalboard'
 import { ExplanationPanel } from './ui/components/ExplanationPanel'
 import { StepSequencer } from './ui/components/StepSequencer'
+import { Oscilloscope } from './ui/components/Oscilloscope'
 import { pedalAccent } from './ui/pedalTheme'
 
 function App() {
@@ -109,9 +110,17 @@ function App() {
             )}
           </div>
 
-          {/* 설명 패널 */}
-          <div className="min-h-[400px] rounded-2xl border border-zinc-800 bg-zinc-900/50 lg:w-[350px]">
-            <ExplanationPanel kind={selectedKind} />
+          {/* 우측: 출력 파형 + 설명 패널 */}
+          <div className="flex flex-col gap-6 lg:w-[350px]">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-400">
+                출력 파형
+              </h2>
+              <Oscilloscope getWaveform={engine.getWaveform} />
+            </div>
+            <div className="min-h-[400px] rounded-2xl border border-zinc-800 bg-zinc-900/50">
+              <ExplanationPanel kind={selectedKind} />
+            </div>
           </div>
         </div>
       </div>

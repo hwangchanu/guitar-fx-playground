@@ -54,16 +54,20 @@ const createReverb: PedalFactory = (): PedalInstance => {
 }
 
 const createCompressor: PedalFactory = (): PedalInstance => {
-  const node = new Tone.Compressor({ threshold: -24, ratio: 4 })
+  const comp = new Tone.Compressor({ threshold: -24, ratio: 4 })
+  // 메이크업 게인: 컴프레서는 누르기만 하므로 고정 부스트로 "단단해지는" 효과를 들리게 한다.
+  const makeup = new Tone.Gain(6, 'decibels')
+  comp.connect(makeup)
   return {
-    input: node,
-    output: node,
+    input: comp,
+    output: makeup,
     setParam(id, v) {
-      if (id === 'threshold') node.threshold.value = v
-      else if (id === 'ratio') node.ratio.value = v
+      if (id === 'threshold') comp.threshold.value = v
+      else if (id === 'ratio') comp.ratio.value = v
     },
     dispose() {
-      node.dispose()
+      comp.dispose()
+      makeup.dispose()
     },
   }
 }

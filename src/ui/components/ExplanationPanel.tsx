@@ -36,6 +36,12 @@ export function ExplanationPanel({ kind }: Props) {
           <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-400">순서</h3>
           <p className="leading-relaxed text-zinc-200">{content.whyOrder}</p>
         </div>
+        <div>
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-amber-400/80">
+            파형에서 보기
+          </h3>
+          <p className="leading-relaxed text-zinc-200">{content.scope}</p>
+        </div>
       </div>
 
       <div className="border-t border-zinc-800 pt-4">

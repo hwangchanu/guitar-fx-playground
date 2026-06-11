@@ -1,7 +1,7 @@
 // React ↔ PedalboardEngine 브리지.
 // 엔진은 useRef로 단일 인스턴스 보존(렌더마다 재생성 금지), 상태는 useReducer가 단일
 // 출처. 상태가 바뀌면 effect에서 engine.reconcile을 호출한다.
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { PedalboardEngine } from '../../audio/PedalboardEngine'
 import { createSequencerSource } from '../../audio/sources/sequencerSource'
 import type { SequencerSource } from '../../audio/sources/sequencerSource'
@@ -48,12 +48,15 @@ export function useEngine() {
     engineRef.current?.stop()
     setPlaying(false)
   }
+  // 시각화용: 매 프레임 호출되므로 안정적 identity 유지(엔진 ref만 읽음).
+  const getWaveform = useCallback(() => engineRef.current?.getWaveform() ?? null, [])
 
   return {
     state,
     playing,
     play,
     stop,
+    getWaveform,
     // 훅이 id의 정식 출처다(추가한 페달을 즉시 선택하려면 id가 동기적으로 필요).
     // reducer.createPedal의 `?? crypto.randomUUID()`는 직접 호출용 폴백일 뿐.
     addPedal: (kind: string): string => {
