@@ -53,8 +53,58 @@ const createReverb: PedalFactory = (): PedalInstance => {
   }
 }
 
+const createCompressor: PedalFactory = (): PedalInstance => {
+  const node = new Tone.Compressor({ threshold: -24, ratio: 4 })
+  return {
+    input: node,
+    output: node,
+    setParam(id, v) {
+      if (id === 'threshold') node.threshold.value = v
+      else if (id === 'ratio') node.ratio.value = v
+    },
+    dispose() {
+      node.dispose()
+    },
+  }
+}
+
+const createChorus: PedalFactory = (): PedalInstance => {
+  // Chorus는 LFO 기반이라 .start()로 모듈레이션을 시작해야 한다.
+  const node = new Tone.Chorus({ frequency: 1.5, depth: 0.7, wet: 0.5 }).start()
+  return {
+    input: node,
+    output: node,
+    setParam(id, v) {
+      if (id === 'rate') node.frequency.value = v
+      else if (id === 'depth') node.depth = v
+      else if (id === 'mix') node.wet.value = v
+    },
+    dispose() {
+      node.dispose()
+    },
+  }
+}
+
+const createFilter: PedalFactory = (): PedalInstance => {
+  const node = new Tone.Filter({ frequency: 1200, type: 'lowpass', Q: 1 })
+  return {
+    input: node,
+    output: node,
+    setParam(id, v) {
+      if (id === 'frequency') node.frequency.value = v
+      else if (id === 'resonance') node.Q.value = v
+    },
+    dispose() {
+      node.dispose()
+    },
+  }
+}
+
 export const PEDAL_FACTORIES: Record<string, PedalFactory> = {
   overdrive: createOverdrive,
   delay: createDelay,
   reverb: createReverb,
+  compressor: createCompressor,
+  chorus: createChorus,
+  filter: createFilter,
 }

@@ -19,6 +19,18 @@ const ACCENT: Record<string, PedalAccent> = {
     card: 'from-purple-900/40 to-purple-950/40 border-purple-800/50',
     chip: 'text-purple-400 border-purple-800 hover:bg-purple-950/50 hover:border-purple-500',
   },
+  compressor: {
+    card: 'from-emerald-900/40 to-emerald-950/40 border-emerald-800/50',
+    chip: 'text-emerald-400 border-emerald-800 hover:bg-emerald-950/50 hover:border-emerald-500',
+  },
+  chorus: {
+    card: 'from-cyan-900/40 to-cyan-950/40 border-cyan-800/50',
+    chip: 'text-cyan-400 border-cyan-800 hover:bg-cyan-950/50 hover:border-cyan-500',
+  },
+  filter: {
+    card: 'from-rose-900/40 to-rose-950/40 border-rose-800/50',
+    chip: 'text-rose-400 border-rose-800 hover:bg-rose-950/50 hover:border-rose-500',
+  },
 }
 
 const FALLBACK: PedalAccent = {

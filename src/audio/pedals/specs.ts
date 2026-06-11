@@ -28,6 +28,31 @@ export const PEDAL_SPECS: Record<string, PedalSpec> = {
       { id: 'mix', label: 'Mix', min: 0, max: 1, step: 0.01, default: 0.4 },
     ],
   },
+  compressor: {
+    kind: 'compressor',
+    label: 'Compressor',
+    params: [
+      { id: 'threshold', label: 'Thresh', min: -60, max: 0, step: 1, default: -24, unit: 'dB' },
+      { id: 'ratio', label: 'Ratio', min: 1, max: 20, step: 1, default: 4 },
+    ],
+  },
+  chorus: {
+    kind: 'chorus',
+    label: 'Chorus',
+    params: [
+      { id: 'rate', label: 'Rate', min: 0.1, max: 8, step: 0.1, default: 1.5, unit: 'Hz' },
+      { id: 'depth', label: 'Depth', min: 0, max: 1, step: 0.01, default: 0.7 },
+      { id: 'mix', label: 'Mix', min: 0, max: 1, step: 0.01, default: 0.5 },
+    ],
+  },
+  filter: {
+    kind: 'filter',
+    label: 'Filter',
+    params: [
+      { id: 'frequency', label: 'Freq', min: 100, max: 6000, step: 10, default: 1200, unit: 'Hz' },
+      { id: 'resonance', label: 'Reso', min: 0, max: 12, step: 0.1, default: 1 },
+    ],
+  },
 }
 
 export const PEDAL_KINDS = Object.keys(PEDAL_SPECS)
