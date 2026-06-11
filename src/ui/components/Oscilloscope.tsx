@@ -4,15 +4,16 @@ import { useEffect, useRef } from 'react'
 // 순수 프레젠테이션 — 엔진이 제공하는 getWaveform만 호출한다.
 interface Props {
   getWaveform: () => Float32Array | null
+  playing: boolean
 }
 
 const W = 600
-const H = 120
+const H = 80 // 렌더 높이(h-20=80px)와 맞춰 세로 눌림 방지
 const SMOOTH = 0.5 // 모양 평활(0~1). 클수록 빠르게 반응.
 const TARGET = 0.85 // 자동 게인 목표 진폭(캔버스 높이 대비)
 const MAX_GAIN = 8 // 무음 구간에서 노이즈 증폭 방지 상한
 
-export function Oscilloscope({ getWaveform }: Props) {
+export function Oscilloscope({ getWaveform, playing }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const displayRef = useRef<Float32Array | null>(null) // 프레임 간 유지되는 평활 버퍼
   const gainRef = useRef(1) // 부드럽게 변하는 자동 게인
@@ -21,6 +22,19 @@ export function Oscilloscope({ getWaveform }: Props) {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
+
+    // 정지 중엔 중앙선만 한 번 그리고 rAF 루프를 돌리지 않는다(불필요한 매 프레임 연산 방지).
+    if (!playing) {
+      ctx.clearRect(0, 0, W, H)
+      ctx.lineWidth = 2
+      ctx.strokeStyle = '#3f3f46' // zinc-700 (흐릿)
+      ctx.beginPath()
+      ctx.moveTo(0, H / 2)
+      ctx.lineTo(W, H / 2)
+      ctx.stroke()
+      return
+    }
+
     let raf = 0
     const draw = () => {
       raf = requestAnimationFrame(draw)
@@ -52,8 +66,8 @@ export function Oscilloscope({ getWaveform }: Props) {
           const a = Math.abs(disp[i])
           if (a > peak) peak = a
         }
-        // 3) 자동 게인 — 파형이 항상 캔버스를 채우게(진폭이 작아도 크게 보임). 게인은
-        //    천천히 변해 펌핑을 막는다. 클리핑의 "모양"은 그대로 보존된다.
+        // 3) 자동 게인 — 파형이 항상 캔버스를 채우게. 게인은 천천히 변해 펌핑을 막고,
+        //    클리핑의 "모양"은 그대로 보존된다.
         const targetGain = peak > 0.001 ? Math.min(MAX_GAIN, TARGET / peak) : gainRef.current
         gainRef.current += (targetGain - gainRef.current) * 0.1
         const gain = gainRef.current
@@ -64,14 +78,14 @@ export function Oscilloscope({ getWaveform }: Props) {
           else ctx.lineTo(x, y)
         }
       } else {
-        ctx.moveTo(0, H / 2) // 신호 없으면 중앙선
+        ctx.moveTo(0, H / 2)
         ctx.lineTo(W, H / 2)
       }
       ctx.stroke()
     }
     draw()
     return () => cancelAnimationFrame(raf)
-  }, [getWaveform])
+  }, [getWaveform, playing])
 
   return (
     <canvas

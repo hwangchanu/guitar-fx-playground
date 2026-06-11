@@ -55,15 +55,33 @@ const createReverb: PedalFactory = (): PedalInstance => {
 
 const createCompressor: PedalFactory = (): PedalInstance => {
   const comp = new Tone.Compressor({ threshold: -24, ratio: 4 })
-  // 메이크업 게인: 컴프레서는 누르기만 하므로 고정 부스트로 "단단해지는" 효과를 들리게 한다.
-  const makeup = new Tone.Gain(6, 'decibels')
+  // 메이크업 게인: 컴프레서는 누르기만 하므로 줄어든 만큼 되올려 효과를 들리게 한다.
+  // 압축량에 비례하게 계산 → 압축이 거의 없으면 게인도 ~0(그냥 "볼륨업"으로 오해 방지).
+  const makeup = new Tone.Gain(1)
   comp.connect(makeup)
+  let threshold = -24
+  let ratio = 4
+  const applyMakeup = () => {
+    // 입력 피크를 -6dBFS로 가정해 추정 감쇠량을 구하고, 통상처럼 그 절반만 보정한다
+    // (과도한 부스트 방지). 상한 12dB.
+    const over = Math.max(0, -6 - threshold)
+    const reductionDb = over * (1 - 1 / ratio)
+    makeup.gain.value = Tone.dbToGain(Math.min(12, reductionDb * 0.5))
+  }
+  applyMakeup()
   return {
     input: comp,
     output: makeup,
     setParam(id, v) {
-      if (id === 'threshold') comp.threshold.value = v
-      else if (id === 'ratio') comp.ratio.value = v
+      if (id === 'threshold') {
+        comp.threshold.value = v
+        threshold = v
+        applyMakeup()
+      } else if (id === 'ratio') {
+        comp.ratio.value = v
+        ratio = v
+        applyMakeup()
+      }
     },
     dispose() {
       comp.dispose()

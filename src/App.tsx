@@ -116,7 +116,7 @@ function App() {
               <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-400">
                 출력 파형
               </h2>
-              <Oscilloscope getWaveform={engine.getWaveform} />
+              <Oscilloscope getWaveform={engine.getWaveform} playing={engine.playing} />
             </div>
             <div className="min-h-[400px] rounded-2xl border border-zinc-800 bg-zinc-900/50">
               <ExplanationPanel kind={selectedKind} />
