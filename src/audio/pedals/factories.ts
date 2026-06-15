@@ -122,6 +122,22 @@ const createFilter: PedalFactory = (): PedalInstance => {
   }
 }
 
+const createEq: PedalFactory = (): PedalInstance => {
+  const node = new Tone.EQ3({ low: 0, mid: 0, high: 0 })
+  return {
+    input: node,
+    output: node,
+    setParam(id, v) {
+      if (id === 'low') node.low.value = v
+      else if (id === 'mid') node.mid.value = v
+      else if (id === 'high') node.high.value = v
+    },
+    dispose() {
+      node.dispose()
+    },
+  }
+}
+
 export const PEDAL_FACTORIES: Record<string, PedalFactory> = {
   overdrive: createOverdrive,
   delay: createDelay,
@@ -129,4 +145,5 @@ export const PEDAL_FACTORIES: Record<string, PedalFactory> = {
   compressor: createCompressor,
   chorus: createChorus,
   filter: createFilter,
+  eq: createEq,
 }

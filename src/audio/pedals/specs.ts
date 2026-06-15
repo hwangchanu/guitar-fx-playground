@@ -53,6 +53,15 @@ export const PEDAL_SPECS: Record<string, PedalSpec> = {
       { id: 'resonance', label: 'Reso', min: 0, max: 12, step: 0.1, default: 1 },
     ],
   },
+  eq: {
+    kind: 'eq',
+    label: 'EQ',
+    params: [
+      { id: 'low', label: 'Low', min: -12, max: 12, step: 0.5, default: 0, unit: 'dB' },
+      { id: 'mid', label: 'Mid', min: -12, max: 12, step: 0.5, default: 0, unit: 'dB' },
+      { id: 'high', label: 'High', min: -12, max: 12, step: 0.5, default: 0, unit: 'dB' },
+    ],
+  },
 }
 
 export const PEDAL_KINDS = Object.keys(PEDAL_SPECS)

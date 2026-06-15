@@ -7,6 +7,7 @@ import { Pedalboard } from './ui/components/Pedalboard'
 import { ExplanationPanel } from './ui/components/ExplanationPanel'
 import { StepSequencer } from './ui/components/StepSequencer'
 import { Oscilloscope } from './ui/components/Oscilloscope'
+import { ToneAnalysis } from './ui/components/ToneAnalysis'
 import { pedalAccent } from './ui/pedalTheme'
 
 function App() {
@@ -118,6 +119,17 @@ function App() {
                 출력 파형
               </h2>
               <Oscilloscope getWaveform={engine.getWaveform} playing={engine.playing} />
+            </div>
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-400">
+                톤 분석
+              </h2>
+              <ToneAnalysis
+                getSpectrum={engine.getSpectrum}
+                getWaveform={engine.getWaveform}
+                getSampleRate={engine.getSampleRate}
+                playing={engine.playing}
+              />
             </div>
             <div className="min-h-[400px] rounded-2xl border border-zinc-800 bg-zinc-900/50">
               <ExplanationPanel kind={selectedKind} />

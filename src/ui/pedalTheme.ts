@@ -31,6 +31,10 @@ const ACCENT: Record<string, PedalAccent> = {
     card: 'from-rose-900/40 to-rose-950/40 border-rose-800/50',
     chip: 'text-rose-400 border-rose-800 hover:bg-rose-950/50 hover:border-rose-500',
   },
+  eq: {
+    card: 'from-lime-900/40 to-lime-950/40 border-lime-800/50',
+    chip: 'text-lime-400 border-lime-800 hover:bg-lime-950/50 hover:border-lime-500',
+  },
 }
 
 const FALLBACK: PedalAccent = {

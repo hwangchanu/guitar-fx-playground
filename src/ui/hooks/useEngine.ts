@@ -50,6 +50,8 @@ export function useEngine() {
   }
   // 시각화용: 매 프레임 호출되므로 안정적 identity 유지(엔진/소스 ref만 읽음).
   const getWaveform = useCallback(() => engineRef.current?.getWaveform() ?? null, [])
+  const getSpectrum = useCallback(() => engineRef.current?.getSpectrum() ?? null, [])
+  const getSampleRate = useCallback(() => engineRef.current?.getSampleRate() ?? 48000, [])
   const getStep = useCallback(() => sourceRef.current?.getCurrentStep() ?? -1, [])
 
   return {
@@ -58,6 +60,8 @@ export function useEngine() {
     play,
     stop,
     getWaveform,
+    getSpectrum,
+    getSampleRate,
     // 훅이 id의 정식 출처다(추가한 페달을 즉시 선택하려면 id가 동기적으로 필요).
     // reducer.createPedal의 `?? crypto.randomUUID()`는 직접 호출용 폴백일 뿐.
     addPedal: (kind: string): string => {

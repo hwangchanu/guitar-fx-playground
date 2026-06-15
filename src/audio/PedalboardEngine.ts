@@ -20,8 +20,9 @@ export class PedalboardEngine {
   // 직전 reconcile 스냅샷 — 바뀐 것만 처리하기 위한 diff 기준.
   private prevChainKey: string | null = null
   private readonly prevParams = new Map<string, Record<string, number>>()
-  // 출력 신호 파형 탭(시각화용). 병렬 연결이라 소리 경로엔 영향 없음.
+  // 출력 신호 파형/스펙트럼 탭(시각화·분석용). 병렬 연결이라 소리 경로엔 영향 없음.
   private readonly waveform = new Tone.Waveform(1024)
+  private readonly fft = new Tone.FFT(1024)
 
   constructor(source: Source) {
     this.source = source
@@ -100,11 +101,21 @@ export class PedalboardEngine {
     }
     prev.connect(Tone.getDestination())
     prev.connect(this.waveform) // 시각화 탭(병렬, 소리에 영향 없음)
+    prev.connect(this.fft) // 스펙트럼 분석 탭(병렬)
   }
 
   /** 출력 신호의 현재 파형 샘플(-1..1). 시각화용으로 매 프레임 읽는다. */
   getWaveform(): Float32Array {
     return this.waveform.getValue()
+  }
+
+  /** 출력 신호의 현재 스펙트럼(bin별 dB, 0..나이퀴스트). 톤 분석용. */
+  getSpectrum(): Float32Array {
+    return this.fft.getValue()
+  }
+
+  getSampleRate(): number {
+    return Tone.getContext().sampleRate
   }
 
   dispose(): void {
@@ -114,6 +125,7 @@ export class PedalboardEngine {
     this.prevParams.clear()
     this.prevChainKey = null
     this.waveform.dispose()
+    this.fft.dispose()
     this.source.dispose()
   }
 }
