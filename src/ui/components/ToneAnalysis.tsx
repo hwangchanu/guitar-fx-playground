@@ -48,7 +48,8 @@ export function ToneAnalysis({ getSpectrum, getWaveform, getSampleRate, playing 
       const bw = W / bins
       ctx.fillStyle = '#22d3ee' // cyan-400 (파형=앰버와 구분)
       for (let i = 0; i < bins; i++) {
-        const v = Math.max(0, Math.min(1, (db[i] + 100) / 100)) // dB(-100..0) → 0..1
+        // Tone.FFT 범위(min -100 ~ max -30 dB)를 0..1로 정규화 → 막대가 캔버스를 꽉 채움
+        const v = Math.max(0, Math.min(1, (db[i] + 100) / 70))
         const h = v * H
         ctx.fillRect(i * bw, H - h, Math.max(1, bw - 1), h)
       }
