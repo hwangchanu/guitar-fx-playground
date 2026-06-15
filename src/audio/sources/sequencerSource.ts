@@ -21,6 +21,7 @@ export function createSequencerSource(
   let disposed = false
   let cells = initialCells // Tone.Sequence 콜백이 매 스텝 이 변수를 읽는다(편집 즉시 반영)
   let currentStep = -1 // 플레이헤드(소리와 싱크된 시점에 갱신)
+  let playing = false // 정지 후 늦게 도착하는 Draw 콜백이 플레이헤드를 되살리지 않게 가드
 
   // 이 음원이 전역 트랜스포트의 유일한 사용자라 BPM을 직접 설정한다.
   const transport = Tone.getTransport()
@@ -40,8 +41,9 @@ export function createSequencerSource(
         sampler.triggerAttackRelease(note, '16n', time)
       }
       // 오디오 스케줄 시간에 맞춰(룩어헤드 보정) 플레이헤드를 갱신해 소리와 싱크.
+      // 정지 후 발화하는 늦은 콜백은 playing 가드로 무시(플레이헤드 stuck 방지).
       Tone.getDraw().schedule(() => {
-        currentStep = step
+        if (playing) currentStep = step
       }, time)
     },
     steps,
@@ -52,10 +54,12 @@ export function createSequencerSource(
   return {
     output: sampler,
     play() {
+      playing = true
       if (loaded) transport.start()
       else wantPlay = true // 로드되면 onload에서 시작
     },
     stop() {
+      playing = false
       wantPlay = false
       transport.stop()
       currentStep = -1
@@ -71,6 +75,7 @@ export function createSequencerSource(
     },
     dispose() {
       disposed = true
+      playing = false
       wantPlay = false
       transport.stop()
       currentStep = -1

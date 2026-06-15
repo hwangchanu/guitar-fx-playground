@@ -94,6 +94,7 @@ export function StepSequencer({
                     type="button"
                     onClick={() => onToggle(row, step)}
                     aria-pressed={on}
+                    aria-current={isHead ? 'step' : undefined}
                     aria-label={`${note} 스텝 ${step + 1}`}
                     className={`h-5 rounded-sm border transition-colors ${
                       on
