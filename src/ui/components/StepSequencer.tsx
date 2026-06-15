@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Eraser, RotateCcw } from 'lucide-react'
 import { SEQ_ROWS, SEQ_STEPS, BPM_MIN, BPM_MAX } from '../../audio/sequence/config'
 
@@ -9,9 +9,35 @@ interface Props {
   onClear: () => void
   onLoadDefault: () => void
   onSetBpm: (value: number) => void
+  getStep: () => number // 재생 중 현재 스텝(-1=정지). 플레이헤드 표시용.
 }
 
-export function StepSequencer({ cells, bpm, onToggle, onClear, onLoadDefault, onSetBpm }: Props) {
+export function StepSequencer({
+  cells,
+  bpm,
+  onToggle,
+  onClear,
+  onLoadDefault,
+  onSetBpm,
+  getStep,
+}: Props) {
+  // 플레이헤드: rAF로 현재 스텝을 읽되 값이 바뀔 때만 setState(불필요한 리렌더 방지).
+  const [playStep, setPlayStep] = useState(-1)
+  useEffect(() => {
+    let raf = 0
+    let last = -1
+    const tick = () => {
+      raf = requestAnimationFrame(tick)
+      const s = getStep()
+      if (s !== last) {
+        last = s
+        setPlayStep(s)
+      }
+    }
+    tick()
+    return () => cancelAnimationFrame(raf)
+  }, [getStep])
+
   return (
     <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -61,6 +87,7 @@ export function StepSequencer({ cells, bpm, onToggle, onClear, onLoadDefault, on
               {Array.from({ length: SEQ_STEPS }).map((_, step) => {
                 const on = cells[row]?.[step] ?? false
                 const beat = step % 4 === 0
+                const isHead = step === playStep
                 return (
                   <button
                     key={step}
@@ -74,7 +101,7 @@ export function StepSequencer({ cells, bpm, onToggle, onClear, onLoadDefault, on
                         : beat
                           ? 'border-zinc-700 bg-zinc-800'
                           : 'border-zinc-800 bg-zinc-900'
-                    } hover:border-amber-500`}
+                    } ${isHead ? 'ring-2 ring-amber-300' : ''} hover:border-amber-500`}
                   />
                 )
               })}

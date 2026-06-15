@@ -106,6 +106,7 @@ function App() {
                 onClear={engine.sequencer.clear}
                 onLoadDefault={engine.sequencer.loadDefault}
                 onSetBpm={engine.sequencer.setBpm}
+                getStep={engine.sequencer.getStep}
               />
             )}
           </div>

@@ -48,8 +48,9 @@ export function useEngine() {
     engineRef.current?.stop()
     setPlaying(false)
   }
-  // 시각화용: 매 프레임 호출되므로 안정적 identity 유지(엔진 ref만 읽음).
+  // 시각화용: 매 프레임 호출되므로 안정적 identity 유지(엔진/소스 ref만 읽음).
   const getWaveform = useCallback(() => engineRef.current?.getWaveform() ?? null, [])
+  const getStep = useCallback(() => sourceRef.current?.getCurrentStep() ?? -1, [])
 
   return {
     state,
@@ -77,6 +78,7 @@ export function useEngine() {
       clear: () => seqDispatch({ type: 'clear' }),
       loadDefault: () => seqDispatch({ type: 'loadDefault' }),
       setBpm: (value: number) => seqDispatch({ type: 'setBpm', value }),
+      getStep,
     },
   }
 }

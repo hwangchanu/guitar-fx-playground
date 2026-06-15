@@ -9,6 +9,7 @@ import { SEQ_STEPS, activeNotesAt } from '../sequence/config'
 export interface SequencerSource extends Source {
   setPattern(cells: boolean[][]): void
   setBpm(bpm: number): void
+  getCurrentStep(): number // 재생 중 현재 스텝(0..15), 정지 시 -1. 플레이헤드 표시용.
 }
 
 export function createSequencerSource(
@@ -19,6 +20,7 @@ export function createSequencerSource(
   let wantPlay = false
   let disposed = false
   let cells = initialCells // Tone.Sequence 콜백이 매 스텝 이 변수를 읽는다(편집 즉시 반영)
+  let currentStep = -1 // 플레이헤드(소리와 싱크된 시점에 갱신)
 
   // 이 음원이 전역 트랜스포트의 유일한 사용자라 BPM을 직접 설정한다.
   const transport = Tone.getTransport()
@@ -37,6 +39,10 @@ export function createSequencerSource(
       for (const note of activeNotesAt(cells, step)) {
         sampler.triggerAttackRelease(note, '16n', time)
       }
+      // 오디오 스케줄 시간에 맞춰(룩어헤드 보정) 플레이헤드를 갱신해 소리와 싱크.
+      Tone.getDraw().schedule(() => {
+        currentStep = step
+      }, time)
     },
     steps,
     '16n',
@@ -52,6 +58,7 @@ export function createSequencerSource(
     stop() {
       wantPlay = false
       transport.stop()
+      currentStep = -1
     },
     setPattern(next) {
       cells = next
@@ -59,10 +66,14 @@ export function createSequencerSource(
     setBpm(bpm) {
       transport.bpm.value = bpm
     },
+    getCurrentStep() {
+      return currentStep
+    },
     dispose() {
       disposed = true
       wantPlay = false
       transport.stop()
+      currentStep = -1
       seq.dispose()
       sampler.dispose()
     },
