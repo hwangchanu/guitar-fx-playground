@@ -99,7 +99,7 @@ export function EqAdvisor({ getSpectrum, getSampleRate, playing, hasEq, onApply 
         {visibleRec
           ? `추천 EQ: Low ${fmt(visibleRec.low)}, Mid ${fmt(visibleRec.mid)}, High ${fmt(visibleRec.high)} dB`
           : applied
-            ? 'EQ에 적용함'
+            ? 'EQ에 적용함. 다시 분석하면 더 정밀해져요.'
             : analyzing
               ? '분석 중'
               : ''}
