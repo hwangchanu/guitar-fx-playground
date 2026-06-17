@@ -185,7 +185,10 @@ export function EqAdvisor({ getSpectrum, getSampleRate, playing, hasEq, onApply 
       )}
 
       {applied && !visibleRec && (
-        <p className="text-[11px] text-lime-400">✓ EQ에 적용했어요. 다시 분석하면 더 정밀해져요.</p>
+        // 시각용 — SR에는 위 role=status가 이미 알리므로 a11y 트리에서 숨겨 중복 낭독 방지.
+        <p aria-hidden="true" className="text-[11px] text-lime-400">
+          ✓ EQ에 적용했어요. 다시 분석하면 더 정밀해져요.
+        </p>
       )}
     </div>
   )
