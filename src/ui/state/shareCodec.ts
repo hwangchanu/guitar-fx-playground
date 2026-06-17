@@ -43,7 +43,9 @@ function encodePedal(p: PedalEntry): { k: string; b?: 1; prm?: Record<string, nu
       const v = p.params[ps.id]
       if (typeof v !== 'number' || !Number.isFinite(v)) continue
       const rv = round(v)
-      if (rv !== ps.default) prm[ps.id] = rv // 반올림 후 비교 — 기본값과 같으면 생략(URL 최소화)
+      // 반올림 후 비교 — 기본값과 같으면 생략(URL 최소화). default도 동일 반올림해
+      // 소수점 4자리 초과 기본값에 대한 잠재 의존 제거.
+      if (rv !== round(ps.default)) prm[ps.id] = rv
     }
     if (Object.keys(prm).length) out.prm = prm
   }

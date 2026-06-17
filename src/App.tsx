@@ -55,7 +55,7 @@ function App() {
               type="button"
               onClick={handleShare}
               title="페달보드 + 시퀀스를 URL로 공유"
-              aria-label={copied ? '공유 링크가 복사됨' : '공유 링크 복사'}
+              aria-label="공유 링크 복사"
               className="inline-flex h-10 items-center gap-2 rounded-md bg-zinc-800 px-4 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
             >
               {copied ? (

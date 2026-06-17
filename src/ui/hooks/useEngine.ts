@@ -74,8 +74,8 @@ export function useEngine() {
   // 현재 페달보드 + 시퀀스를 공유 가능한 URL로. (호출 시점 상태를 인코딩 — 매 프레임 호출 아님)
   const shareUrl = useCallback(() => {
     const token = encodeShare(state, seq)
-    const { origin, pathname } = window.location
-    return `${origin}${pathname}#${token}`
+    const { origin, pathname, search } = window.location
+    return `${origin}${pathname}${search}#${token}`
   }, [state, seq])
 
   return {
