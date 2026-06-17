@@ -6,18 +6,35 @@ import { PedalboardEngine } from '../../audio/PedalboardEngine'
 import { createSequencerSource } from '../../audio/sources/sequencerSource'
 import type { SequencerSource } from '../../audio/sources/sequencerSource'
 import { pedalboardReducer, initialPedalboard } from '../state/pedalboardReducer'
-import { sequencerReducer, initialSequencer } from '../state/sequencerReducer'
+import { sequencerReducer, initialSequencer, type SequencerState } from '../state/sequencerReducer'
+import { decodeShare, encodeShare } from '../state/shareCodec'
+import type { PedalboardState } from '../../audio/types'
+
+// 마운트 시 URL 해시(#…)에 공유 토큰이 있으면 복원, 없거나 깨졌으면 기본값.
+function readInitialState(): { board: PedalboardState; seq: SequencerState } {
+  if (typeof window !== 'undefined') {
+    const token = window.location.hash.replace(/^#/, '')
+    if (token) {
+      const decoded = decodeShare(token)
+      if (decoded) return decoded
+    }
+  }
+  return { board: initialPedalboard, seq: initialSequencer }
+}
 
 export function useEngine() {
   const engineRef = useRef<PedalboardEngine | null>(null)
   const sourceRef = useRef<SequencerSource | null>(null)
-  const [state, dispatch] = useReducer(pedalboardReducer, initialPedalboard)
-  const [seq, seqDispatch] = useReducer(sequencerReducer, initialSequencer)
+  // 공유 URL → 초기 상태(1회 계산). 소스 동기화는 기존 setPattern/setBpm effect가 마운트 때 수행.
+  const [initial] = useState(readInitialState)
+  const [state, dispatch] = useReducer(pedalboardReducer, initial.board)
+  const [seq, seqDispatch] = useReducer(sequencerReducer, initial.seq)
   const [playing, setPlaying] = useState(false)
 
   useEffect(() => {
-    // 음원 = 스텝 시퀀서(기본 패턴 = 프리셋 리프). 음원은 교체 가능한 모듈.
-    const source = createSequencerSource(initialSequencer.cells, initialSequencer.bpm)
+    // 음원 = 스텝 시퀀서. 복원된 초기 상태(공유 URL 또는 기본 리프)로 바로 생성한다
+    // — effect 실행 순서에 의존하지 않도록(initial은 useState로 고정된 1회 값).
+    const source = createSequencerSource(initial.seq.cells, initial.seq.bpm)
     const engine = new PedalboardEngine(source)
     sourceRef.current = source
     engineRef.current = engine
@@ -26,7 +43,7 @@ export function useEngine() {
       engineRef.current = null
       sourceRef.current = null
     }
-  }, [])
+  }, [initial])
 
   useEffect(() => {
     engineRef.current?.reconcile(state)
@@ -54,11 +71,19 @@ export function useEngine() {
   const getSampleRate = useCallback(() => engineRef.current?.getSampleRate() ?? 48000, [])
   const getStep = useCallback(() => sourceRef.current?.getCurrentStep() ?? -1, [])
 
+  // 현재 페달보드 + 시퀀스를 공유 가능한 URL로. (호출 시점 상태를 인코딩 — 매 프레임 호출 아님)
+  const shareUrl = useCallback(() => {
+    const token = encodeShare(state, seq)
+    const { origin, pathname } = window.location
+    return `${origin}${pathname}#${token}`
+  }, [state, seq])
+
   return {
     state,
     playing,
     play,
     stop,
+    shareUrl,
     getWaveform,
     getSpectrum,
     getSampleRate,

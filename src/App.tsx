@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Music } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Plus, Music, Link2, Check } from 'lucide-react'
 import { useEngine } from './ui/hooks/useEngine'
 import { PEDAL_SPECS, PEDAL_KINDS } from './audio/pedals/specs'
 import { TransportControls } from './ui/components/TransportControls'
@@ -14,12 +14,31 @@ function App() {
   const engine = useEngine()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [midiMode, setMidiMode] = useState(false)
+  const [copied, setCopied] = useState(false)
   const selectedKind = engine.state.pedals.find((p) => p.id === selectedId)?.kind ?? null
 
   const handleRemove = (id: string) => {
     engine.removePedal(id)
     setSelectedId((cur) => (cur === id ? null : cur))
   }
+
+  const handleShare = async () => {
+    const url = engine.shareUrl()
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+    } catch {
+      // 클립보드 불가(비보안 컨텍스트 등) → 수동 복사용 프롬프트로 폴백
+      window.prompt('이 링크를 복사하세요', url)
+    }
+  }
+
+  // '복사됨' 배지를 2초 후 자동 해제. effect로 처리해 재클릭·언마운트 시 타이머를 정리한다.
+  useEffect(() => {
+    if (!copied) return
+    const id = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(id)
+  }, [copied])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 text-zinc-100">
@@ -32,6 +51,24 @@ function App() {
             <p className="text-xs text-zinc-500">클린 일렉기타 리프 · FreePats CC0</p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleShare}
+              title="페달보드 + 시퀀스를 URL로 공유"
+              aria-label={copied ? '공유 링크가 복사됨' : '공유 링크 복사'}
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-zinc-800 px-4 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-700"
+            >
+              {copied ? (
+                <Check className="h-4 w-4 text-emerald-400" />
+              ) : (
+                <Link2 className="h-4 w-4" />
+              )}
+              {copied ? '복사됨' : '공유'}
+            </button>
+            {/* 복사 결과를 스크린리더에 알림(버튼 라벨 변경만으론 안정적으로 읽히지 않음). */}
+            <span role="status" aria-live="polite" className="sr-only">
+              {copied ? '공유 링크가 복사됨' : ''}
+            </span>
             <button
               type="button"
               onClick={() => setMidiMode((m) => !m)}
