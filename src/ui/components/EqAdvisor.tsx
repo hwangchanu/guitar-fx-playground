@@ -25,6 +25,7 @@ export function EqAdvisor({ getSpectrum, getSampleRate, playing, hasEq, onApply 
   const [targetId, setTargetId] = useState<string | null>(null)
   const [rec, setRec] = useState<BandGains | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
+  const [applied, setApplied] = useState(false) // 직전 추천을 EQ에 적용했는지(확인 피드백용)
   const rafRef = useRef(0)
   const runningRef = useRef(false) // 동시 실행/재진입 방지(disabled 버튼 + 동기 중복 클릭 대비)
   const playingRef = useRef(playing) // step 클로저가 최신 재생 상태를 읽도록
@@ -32,6 +33,9 @@ export function EqAdvisor({ getSpectrum, getSampleRate, playing, hasEq, onApply 
   const selected: ToneTarget | undefined = TONE_TARGETS.find((t) => t.id === targetId)
   // 정지 중엔 추천을 숨긴다(상태를 effect에서 비우지 않고 파생값으로 — set-state-in-effect 회피).
   const visibleRec = playing ? rec : null
+  // 추천이 전부 0 = 이미 목표에 가까움(스냅 후 조정량 없음). 적용해도 변화가 없으므로 구분 안내.
+  const isFlat =
+    !!visibleRec && visibleRec.low === 0 && visibleRec.mid === 0 && visibleRec.high === 0
 
   useEffect(() => {
     playingRef.current = playing
@@ -51,6 +55,7 @@ export function EqAdvisor({ getSpectrum, getSampleRate, playing, hasEq, onApply 
     const MAX_TICKS = FRAMES * 6 // 데이터가 안 와도 반드시 종료(무한 rAF 방지)
     runningRef.current = true
     setAnalyzing(true)
+    setApplied(false)
     setRec(null)
     const finish = (result: BandGains | null) => {
       runningRef.current = false
@@ -93,9 +98,11 @@ export function EqAdvisor({ getSpectrum, getSampleRate, playing, hasEq, onApply 
       <span role="status" aria-live="polite" className="sr-only">
         {visibleRec
           ? `추천 EQ: Low ${fmt(visibleRec.low)}, Mid ${fmt(visibleRec.mid)}, High ${fmt(visibleRec.high)} dB`
-          : analyzing
-            ? '분석 중'
-            : ''}
+          : applied
+            ? 'EQ에 적용함'
+            : analyzing
+              ? '분석 중'
+              : ''}
       </span>
 
       <div role="group" aria-label="목표 톤" className="flex flex-wrap gap-2">
@@ -107,6 +114,7 @@ export function EqAdvisor({ getSpectrum, getSampleRate, playing, hasEq, onApply 
             onClick={() => {
               setTargetId(t.id)
               setRec(null)
+              setApplied(false)
             }}
             aria-pressed={targetId === t.id}
             className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -154,16 +162,30 @@ export function EqAdvisor({ getSpectrum, getSampleRate, playing, hasEq, onApply 
               </div>
             ))}
           </dl>
-          <button
-            type="button"
-            onClick={() => onApply(visibleRec)}
-            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-lime-700 text-sm font-medium text-lime-300 transition-colors hover:bg-lime-950/50"
-          >
-            <Check className="h-4 w-4" />
-            {hasEq ? 'EQ 페달에 적용' : 'EQ 페달 추가하고 적용'}
-          </button>
-          <p className="text-[10px] text-zinc-600">적용 후 다시 분석하면 더 정밀해집니다.</p>
+          {isFlat ? (
+            <p className="text-[11px] text-zinc-500">이미 목표 톤에 가까워요 — 더 조정할 게 없어요.</p>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  onApply(visibleRec)
+                  setRec(null) // 적용 후 추천을 비워 클릭이 먹혔음을 명확히(재분석 유도)
+                  setApplied(true)
+                }}
+                className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-lime-700 text-sm font-medium text-lime-300 transition-colors hover:bg-lime-950/50"
+              >
+                <Check className="h-4 w-4" />
+                {hasEq ? 'EQ 페달에 적용' : 'EQ 페달 추가하고 적용'}
+              </button>
+              <p className="text-[10px] text-zinc-600">적용 후 다시 분석하면 더 정밀해집니다.</p>
+            </>
+          )}
         </div>
+      )}
+
+      {applied && !visibleRec && (
+        <p className="text-[11px] text-lime-400">✓ EQ에 적용했어요. 다시 분석하면 더 정밀해져요.</p>
       )}
     </div>
   )
