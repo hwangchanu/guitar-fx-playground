@@ -8,6 +8,8 @@ import { ExplanationPanel } from './ui/components/ExplanationPanel'
 import { StepSequencer } from './ui/components/StepSequencer'
 import { Oscilloscope } from './ui/components/Oscilloscope'
 import { ToneAnalysis } from './ui/components/ToneAnalysis'
+import { EqAdvisor } from './ui/components/EqAdvisor'
+import { addEqGains, type BandGains } from './audio/analysis/eqAdvisor'
 import { pedalAccent } from './ui/pedalTheme'
 
 function App() {
@@ -39,6 +41,22 @@ function App() {
     const id = setTimeout(() => setCopied(false), 2000)
     return () => clearTimeout(id)
   }, [copied])
+
+  // EQ 추천을 EQ 페달에 적용. 선택된 EQ 우선 → 첫 EQ → 없으면 추가(같은 dispatch 순서로
+  // reducer가 처리). 가산·clamp·스냅은 오디오 레이어의 addEqGains가 담당(범위는 한 곳에서).
+  const applyEqRecommendation = (rec: BandGains) => {
+    const pedals = engine.state.pedals
+    const existing =
+      pedals.find((p) => p.id === selectedId && p.kind === 'eq') ??
+      pedals.find((p) => p.kind === 'eq')
+    const id = existing?.id ?? engine.addPedal('eq')
+    const cur = existing?.params ?? { low: 0, mid: 0, high: 0 }
+    const next = addEqGains({ low: cur.low ?? 0, mid: cur.mid ?? 0, high: cur.high ?? 0 }, rec)
+    engine.setParam(id, 'low', next.low)
+    engine.setParam(id, 'mid', next.mid)
+    engine.setParam(id, 'high', next.high)
+    setSelectedId(id)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 text-zinc-100">
@@ -166,6 +184,18 @@ function App() {
                 getWaveform={engine.getWaveform}
                 getSampleRate={engine.getSampleRate}
                 playing={engine.playing}
+              />
+            </div>
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-zinc-400">
+                EQ 추천
+              </h2>
+              <EqAdvisor
+                getSpectrum={engine.getSpectrum}
+                getSampleRate={engine.getSampleRate}
+                playing={engine.playing}
+                hasEq={engine.state.pedals.some((p) => p.kind === 'eq')}
+                onApply={applyEqRecommendation}
               />
             </div>
             <div className="min-h-[400px] rounded-2xl border border-zinc-800 bg-zinc-900/50">
