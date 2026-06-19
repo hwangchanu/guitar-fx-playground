@@ -10,7 +10,9 @@
 //       # 하네스가 blocking 체크 실패 로그를 stdin으로 넘겨주면, 리뷰와 함께
 //       # 그 실패의 원인·위치·수정안을 해설한다.
 import { execSync, spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync, writeFileSync, unlinkSync } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 const staged = process.argv.includes('--staged')
 const withFailures = process.argv.includes('--with-failures')
@@ -34,9 +36,30 @@ const sh = (cmd) => {
 }
 const ok = (cmd, args) => spawnSync(cmd, args, { stdio: 'ignore' }).status === 0
 
-// Claude CLI가 없으면 조용히 통과 (훅이 커밋을 막지 않도록).
-const whichCmd = process.platform === 'win32' ? 'where' : 'which'
-if (!ok(whichCmd, ['claude'])) process.exit(0)
+// Antigravity CLI (agy) 존재 여부 및 실행 방식 결정 (Windows에서 WSL agy 호출 지원)
+const agyPath = '/home/chano/.local/bin/agy'
+let agyCmd = ''
+let useWsl = false
+
+if (process.platform === 'win32') {
+  if (ok('where', ['agy'])) {
+    agyCmd = 'agy'
+  } else if (ok('wsl', ['test', '-x', agyPath])) {
+    agyCmd = agyPath
+    useWsl = true
+  }
+} else {
+  if (existsSync(agyPath)) {
+    agyCmd = agyPath
+  } else if (ok('which', ['agy'])) {
+    agyCmd = 'agy'
+  }
+}
+
+if (!agyCmd) {
+  console.log('Antigravity CLI (agy)가 설치되어 있지 않아 리뷰를 건너뜁니다.')
+  process.exit(0)
+}
 
 let diff
 if (staged) {
@@ -83,10 +106,40 @@ if (failureLog.trim()) {
 }
 input += `===== DIFF =====\n${diff || '(스테이징된 변경 없음)'}`
 
-const res = spawnSync('claude', ['-p', prompt], {
+let cmd = agyCmd
+let args = ['-p', prompt, '--model', 'Gemini 3.5 Flash (High)', '--dangerously-skip-permissions']
+
+let tmpFile = null
+
+if (useWsl) {
+  // 1. diff 길이가 Windows의 커맨드라인 길이 제한(32KB)을 넘을 수 있으므로 파일로 전달
+  const fullPrompt = prompt + '\n' + input
+  tmpFile = path.join(os.tmpdir(), `agy-prompt-${Date.now()}.txt`)
+  writeFileSync(tmpFile, fullPrompt)
+  
+  // Windows 경로를 WSL 경로로 변환 (예: C:\... -> /mnt/c/...)
+  const wslTmpFile = tmpFile.replace(/^[a-zA-Z]:/, (match) => `/mnt/${match[0].toLowerCase()}`).replace(/\\/g, '/')
+  const safeWslTmpFile = "'" + wslTmpFile.replace(/'/g, "'\\''") + "'"
+
+  // 2. Antigravity Lab의 non-TTY 우회 방식 적용 (가짜 PTY 생성 + 무프롬프트 + 타임아웃)
+  const innerCmd = `${agyCmd} -p "$(cat ${safeWslTmpFile})" --model "Gemini 3.5 Flash (High)" --dangerously-skip-permissions < /dev/null`
+  
+  cmd = 'wsl'
+  args = [
+    'timeout', '--signal=TERM', '--kill-after=15', '600',
+    'script', '-qec', innerCmd, '/dev/null'
+  ]
+  input = '' // 표준 입력 대신 파일로 넘겼으므로 비움
+}
+
+const res = spawnSync(cmd, args, {
   input,
   stdio: ['pipe', 'inherit', 'inherit'],
 })
+
+if (tmpFile) {
+  try { unlinkSync(tmpFile) } catch (e) {}
+}
 
 // 권고용(staged)에서는 리뷰 결과와 무관하게 항상 성공으로 빠져 커밋을 막지 않는다.
 if (staged) process.exit(0)
