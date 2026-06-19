@@ -112,24 +112,26 @@ let args = ['-p', prompt, '--model', 'Gemini 3.5 Flash (High)', '--dangerously-s
 let tmpFile = null
 
 if (useWsl) {
-  // 1. diff 길이가 Windows의 커맨드라인 길이 제한(32KB)을 넘을 수 있으므로 파일로 전달
-  const fullPrompt = prompt + '\n' + input
-  tmpFile = path.join(os.tmpdir(), `agy-prompt-${Date.now()}.txt`)
-  writeFileSync(tmpFile, fullPrompt)
+  // 1. diff 길이가 매우 길 수 있으므로 stdin으로 파이프하기 위해 임시 파일로 저장
+  tmpFile = path.join(os.tmpdir(), `agy-diff-${Date.now()}.txt`)
+  writeFileSync(tmpFile, input)
   
   // Windows 경로를 WSL 경로로 변환 (예: C:\... -> /mnt/c/...)
   const wslTmpFile = tmpFile.replace(/^[a-zA-Z]:/, (match) => `/mnt/${match[0].toLowerCase()}`).replace(/\\/g, '/')
   const safeWslTmpFile = "'" + wslTmpFile.replace(/'/g, "'\\''") + "'"
 
-  // 2. Antigravity Lab의 non-TTY 우회 방식 적용 (가짜 PTY 생성 + 무프롬프트 + 타임아웃)
-  const innerCmd = `${agyCmd} -p "$(cat ${safeWslTmpFile})" --model "Gemini 3.5 Flash (High)" --dangerously-skip-permissions < /dev/null`
+  // 프롬프트는 짧으므로 셸 스크립트에서 안전하게 파싱되도록 이스케이프 처리
+  const safePrompt = "'" + prompt.replace(/'/g, "'\\''") + "'"
+
+  // 2. Antigravity Lab의 non-TTY 우회 방식 적용. cat으로 임시파일을 읽어 agy의 stdin으로 파이프.
+  const innerCmd = `cat ${safeWslTmpFile} | ${agyCmd} -p ${safePrompt} --model "Gemini 3.5 Flash (High)" --dangerously-skip-permissions`
   
   cmd = 'wsl'
   args = [
     'timeout', '--signal=TERM', '--kill-after=15', '600',
     'script', '-qec', innerCmd, '/dev/null'
   ]
-  input = '' // 표준 입력 대신 파일로 넘겼으므로 비움
+  input = '' // 임시 파일을 통해 파이프하므로 Node.js 레벨의 stdin은 비움
 }
 
 const res = spawnSync(cmd, args, {
