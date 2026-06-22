@@ -14,6 +14,41 @@ export interface AnalyzerOptions {
   subdivisions: number
 }
 
+/**
+ * 모든 온셋이 그리드에 가장 잘 맞는 시간 오프셋(초)을 찾는다.
+ * firstOnset ± halfGrid 범위를 5ms 스텝으로 탐색, SSE(편차 제곱합) 최소 지점 반환.
+ */
+function findBestOffset(
+  onsetTimes: number[],
+  gridInterval: number,
+): number {
+  if (onsetTimes.length === 0) return 0;
+
+  const first = onsetTimes[0];
+  const halfGrid = gridInterval / 2;
+  const stepSec = 0.005; // 5ms
+
+  let bestOffset = first;
+  let bestSSE = Infinity;
+
+  for (let candidate = first - halfGrid;
+       candidate <= first + halfGrid;
+       candidate += stepSec) {
+    let sse = 0;
+    for (const t of onsetTimes) {
+      const shifted = t - candidate;
+      const nearest = Math.round(shifted / gridInterval) * gridInterval;
+      const diff = shifted - nearest;
+      sse += diff * diff;
+    }
+    if (sse < bestSSE) {
+      bestSSE = sse;
+      bestOffset = candidate;
+    }
+  }
+  return bestOffset;
+}
+
 export function analyzeChromatic(
   samples: Float32Array,
   options: AnalyzerOptions,
@@ -76,85 +111,75 @@ export function analyzeChromatic(
   // 3. 다이내믹 분석
   const dynamics = analyzeDynamics(samples, onsetTimes, { sampleRate });
 
-  // 4. 타이밍 분석 (그리드 매핑)
+  // 4. 타이밍 분석 (글로벌 오프셋 정렬 + 연주 구간 한정)
   const gridIntervalSec = 60 / bpm / subdivisions;
-  const totalDurationSec = samples.length / sampleRate;
-  const maxOnsetGrid = onsetTimes.length > 0
-    ? Math.round(onsetTimes[onsetTimes.length - 1] / gridIntervalSec)
-    : 0;
-  const totalGrids = Math.max(
-    maxOnsetGrid + 1,
-    Math.floor(totalDurationSec / gridIntervalSec)
-  );
 
-  const deviationsMs: number[] = [];
-  const judgments: ('perfect' | 'good' | 'early' | 'late' | 'miss')[] = [];
+  // 4-a. 최적 오프셋 산출
+  const offsetSec = findBestOffset(onsetTimes, gridIntervalSec);
 
-  // 각 그리드 인덱스에 매핑되는 가장 가까운 온셋 인덱스 찾기 (1대1 매핑)
+  // 4-b. 온셋을 보정된 좌표계로 변환 → 그리드 매핑
   const gridToOnset = new Map<number, number>();
-  const onsetToGrid = new Map<number, number>();
 
   for (let i = 0; i < onsetTimes.length; i++) {
-    const timeSec = onsetTimes[i];
-    const gridIndex = Math.round(timeSec / gridIntervalSec);
+    const shifted = onsetTimes[i] - offsetSec;
+    const gridIndex = Math.round(shifted / gridIntervalSec);
+    const newDiff = Math.abs(shifted - gridIndex * gridIntervalSec);
 
-    // 너무 먼 곳(반 칸 이상)에 매핑되는 것을 차단할 수도 있으나,
-    // 일단 가장 가까운 그리드로 매핑하고 나중에 판단
-    const currentMapped = gridToOnset.get(gridIndex);
-    if (currentMapped === undefined) {
+    const existing = gridToOnset.get(gridIndex);
+    if (existing === undefined) {
       gridToOnset.set(gridIndex, i);
-      onsetToGrid.set(i, gridIndex);
     } else {
-      const currentMappedTime = onsetTimes[currentMapped];
-      const currentDiff = Math.abs(currentMappedTime - gridIndex * gridIntervalSec);
-      const newDiff = Math.abs(timeSec - gridIndex * gridIntervalSec);
-      if (newDiff < currentDiff) {
+      const existingDiff = Math.abs(
+        onsetTimes[existing] - offsetSec - gridIndex * gridIntervalSec
+      );
+      if (newDiff < existingDiff) {
         gridToOnset.set(gridIndex, i);
-        onsetToGrid.set(i, gridIndex);
-        onsetToGrid.delete(currentMapped);
       }
     }
   }
 
-  let mappedDeviationsSum = 0;
-  let mappedDeviationsCount = 0;
+  // 4-c. 평가 범위를 연주 구간으로 한정 (첫 매핑 ~ 마지막 매핑)
+  const mappedGrids = [...gridToOnset.keys()].sort((a, b) => a - b);
+  const startGrid = mappedGrids.length > 0 ? mappedGrids[0] : 0;
+  const endGrid   = mappedGrids.length > 0 ? mappedGrids[mappedGrids.length - 1] : 0;
+
+  // 4-d. 각 그리드의 편차 & 판정
+  const deviationsMs: number[] = [];
+  const judgments: ('perfect' | 'good' | 'early' | 'late' | 'miss')[] = [];
   const validDeviations: number[] = [];
 
-  for (let g = 0; g < totalGrids; g++) {
+  for (let g = startGrid; g <= endGrid; g++) {
     const onsetIdx = gridToOnset.get(g);
     if (onsetIdx !== undefined) {
-      const onsetSec = onsetTimes[onsetIdx];
-      const devMs = (onsetSec - g * gridIntervalSec) * 1000;
+      const shifted = onsetTimes[onsetIdx] - offsetSec;
+      const devMs = (shifted - g * gridIntervalSec) * 1000;
       deviationsMs.push(devMs);
       validDeviations.push(devMs);
-      mappedDeviationsSum += devMs;
-      mappedDeviationsCount++;
 
       const absDev = Math.abs(devMs);
-      if (absDev <= 15) {
-        judgments.push('perfect');
-      } else if (absDev <= 30) {
-        judgments.push('good');
-      } else if (devMs > 30) {
-        judgments.push('late');
-      } else {
-        judgments.push('early');
-      }
+      if (absDev <= 15)       judgments.push('perfect');
+      else if (absDev <= 30)  judgments.push('good');
+      else if (devMs > 30)    judgments.push('late');
+      else                    judgments.push('early');
     } else {
-      // 해당 그리드에 매핑된 피킹이 없는 경우
       deviationsMs.push(0);
       judgments.push('miss');
     }
   }
 
   // 통계 계산
-  const meanDeviationMs = mappedDeviationsCount > 0 ? mappedDeviationsSum / mappedDeviationsCount : 0;
+  let mappedDeviationsSum = 0;
+  for (const d of validDeviations) mappedDeviationsSum += d;
+  const mappedDeviationsCount = validDeviations.length;
+  const meanDeviationMs = mappedDeviationsCount > 0
+    ? mappedDeviationsSum / mappedDeviationsCount : 0;
   let sumSqDiff = 0;
-  for (const dev of validDeviations) {
-    const diff = dev - meanDeviationMs;
+  for (const d of validDeviations) {
+    const diff = d - meanDeviationMs;
     sumSqDiff += diff * diff;
   }
-  const stdDeviationMs = mappedDeviationsCount > 0 ? Math.sqrt(sumSqDiff / mappedDeviationsCount) : 0;
+  const stdDeviationMs = mappedDeviationsCount > 0
+    ? Math.sqrt(sumSqDiff / mappedDeviationsCount) : 0;
 
   const timing: TimingResult = {
     gridIntervalSec,
